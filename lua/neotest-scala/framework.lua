@@ -56,6 +56,7 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     -- })
 
     -- local subcommand_joined = table.concat(subcommand, " ")
+    print("project is: ", project)
     print("test_path: ", test_path)
 
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
@@ -240,6 +241,7 @@ local function munit_framework()
     ---@return string[]
     local function build_command(runner, project, tree, name, extra_args)
         local test_path = build_test_path(tree, name)
+        print("@name is: ", name)
         print("@test_path: ", test_path)
         return build_command_with_test_path(project, runner, test_path, extra_args)
     end
