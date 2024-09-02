@@ -53,7 +53,12 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
         "sbt",
         "--no-colors",
         extra_args,
-        project .. "/testOnly -- " .. '"' .. test_path .. '"',
+        -- FIXME: obviously this isn't a sensible way to do this, but I'll replace with 'root' for the moment
+        "root"
+            .. "/testOnly"
+            .. '"'
+            .. test_path
+            .. '"',
     })
 
     -- print table as string
