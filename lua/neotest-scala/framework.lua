@@ -51,7 +51,7 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
     local ret = vim.tbl_flatten({
         "sbt",
-        "--no-colors",
+        -- "--no-colors",
         extra_args,
         -- FIXME: obviously this isn't a sensible way to do this, but I'll replace with 'root' for the moment
         "root/testOnly",
