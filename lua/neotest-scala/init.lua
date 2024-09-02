@@ -115,8 +115,8 @@ end
 local function get_project_name(path, runner)
     -- print("get_project_name")
     local root = ScalaNeotestAdapter.root(path)
-    print("root is", root)
     local build_file = root .. "/build.sbt"
+    print("build_file is", build_file)
     local success, lines = pcall(lib.files.read_lines, build_file)
     if not success then
         return nil
