@@ -56,6 +56,7 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     -- })
 
     -- local subcommand_joined = table.concat(subcommand, " ")
+    print("test_path: ", test_path)
 
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
     local ret = vim.tbl_flatten({
