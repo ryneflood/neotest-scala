@@ -35,7 +35,7 @@ end
 ---@param test_path string|nil
 ---@param extra_args table|string
 ---@return string[]
-local function build_command_with_test_path(project, runner, test_path, extra_args)
+local function build_command_with_test_path(project, runner, parent, test_path, extra_args)
     -- if runner == "bloop" then
     --     local full_test_path
     --     if not test_path then
@@ -65,7 +65,8 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
         "test",
         "root-test",
         "-o",
-        "AnotherTestSuite",
+        -- "AnotherTestSuite",
+        parent,
         "--",
         -- "AnotherTestSuite.two",
         test_path,
@@ -151,7 +152,9 @@ local function utest_framework()
     ---@return string[]
     local function build_command(runner, project, tree, name, extra_args)
         local test_path = build_test_path(tree, name)
-        return build_command_with_test_path(project, runner, test_path, extra_args)
+        -- return build_command_with_test_path(project, runner, test_path, extra_args)
+        -- FIXME: obviously this doesn't work
+        return { "", "" }
     end
 
     ---Get test ID from the test line output.
@@ -194,7 +197,7 @@ local function munit_framework()
     -- Builds a test path from the current position in the tree.
     ---@param tree neotest.Tree
     ---@param name string
-    ---@return string|nil
+    ---@return table|nil
     local function build_test_path(tree, name)
         local parent_tree = tree:parent()
         local type = tree:data().type
@@ -203,7 +206,12 @@ local function munit_framework()
             local parent_name = parent_tree:data().name
             print("package is: ", package)
             print("parent_name is: ", parent_name)
-            return package .. parent_name .. "." .. name
+
+            return {
+                parent = parent_name,
+                name = name,
+                test_path = package .. parent_name .. "." .. name,
+            }
         end
         if parent_tree and parent_tree:data().type == "test" then
             local parent_pos = parent_tree:data()
@@ -214,7 +222,9 @@ local function munit_framework()
             if not package then
                 return nil
             end
-            return package .. name .. ".*"
+            -- return package .. name .. ".*"
+            -- FIXME: obviously this doesn't work
+            return {}
         end
         if type == "file" then
             local test_suites = {}
@@ -225,11 +235,15 @@ local function munit_framework()
             end
             if test_suites then
                 local package = utils.get_package_name(tree:data().path)
-                return package .. "*"
+                -- return package .. "*"
+                -- FIXME: obviously this doesn't work
+                return {}
             end
         end
         if type == "dir" then
-            return "*"
+            -- return "*"
+            -- FIXME: obviously this doesn't work
+            return {}
         end
         return nil
     end
@@ -245,7 +259,11 @@ local function munit_framework()
         local test_path = build_test_path(tree, name)
         print("@name is: ", name)
         print("@test_path: ", test_path)
-        return build_command_with_test_path(project, runner, test_path, extra_args)
+        local parent = test_path.parent
+        -- local name = test_path.name
+        local test_path = test_path.test_path
+
+        return build_command_with_test_path(project, runner, parent, test_path, extra_args)
     end
 
     ---Get test ID from the test line output.
