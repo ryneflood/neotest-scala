@@ -202,6 +202,7 @@ local function munit_framework()
             local package = utils.get_package_name(parent_tree:data().path)
             local parent_name = parent_tree:data().name
             print("package is: ", package)
+            print("parent_name is: ", parent_name)
             return package .. parent_name .. "." .. name
         end
         if parent_tree and parent_tree:data().type == "test" then
