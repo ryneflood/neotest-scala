@@ -46,25 +46,28 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     --     return vim.tbl_flatten({ "bloop", "test", extra_args, project, full_test_path })
     -- end
     if not test_path then
-        println("no test path...")
         return vim.tbl_flatten({ "sbt", extra_args, project .. "/test" })
     end
-    -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
-    local ret = vim.tbl_flatten({
-        "sbt",
-        -- "--no-colors",
-        extra_args,
-        -- FIXME: obviously this isn't a sensible way to do this, but I'll replace with 'root' for the moment
+
+    local subcommand = vim.tbl_flatten({
         "root/testOnly",
         "--",
         '"' .. test_path .. '"',
     })
 
-    -- print table as string
-    -- print("command: ", vim.inspect(ret))
-    -- print("extra_args: ", vim.inspect(extra_args))
+    local subcommand_joined = table.concat(subcommand, " ")
+
+    -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
+    local ret = vim.tbl_flatten({
+        "sbt",
+        -- "--no-colors",
+        extra_args,
+        "' .. subcommand_joined .. '",
+    })
+
     local joined = table.concat(ret, " ")
 
+    print("subcommand would be: ", subcommand_joined)
     print("command would be: ", joined)
 
     return ret
@@ -225,6 +228,7 @@ local function munit_framework()
     ---@return string[]
     local function build_command(runner, project, tree, name, extra_args)
         local test_path = build_test_path(tree, name)
+        print("@test_path: ", test_path)
         return build_command_with_test_path(project, runner, test_path, extra_args)
     end
 
