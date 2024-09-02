@@ -56,7 +56,6 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
         -- FIXME: obviously this isn't a sensible way to do this, but I'll replace with 'root' for the moment
         "root/testOnly",
         "--",
-        "z",
         '"' .. test_path .. '"',
     })
 
