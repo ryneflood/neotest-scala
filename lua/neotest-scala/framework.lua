@@ -61,8 +61,11 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     })
 
     -- print table as string
-    print("command: ", vim.inspect(ret))
-    print("extra_args: ", vim.inspect(extra_args))
+    -- print("command: ", vim.inspect(ret))
+    -- print("extra_args: ", vim.inspect(extra_args))
+    local joined = table.concat(ret, " ")
+
+    print("command would be: ", joined)
 
     return ret
 end
