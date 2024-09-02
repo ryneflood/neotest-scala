@@ -48,7 +48,7 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     if not test_path then
         return vim.tbl_flatten({ "sbt", extra_args, project .. "/test" })
     end
-    -- TODO: Run sbt with colors, but figuoure wich ainsi sequence need to be matched.
+    -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
     return vim.tbl_flatten({
         "sbt",
         "--no-colors",
@@ -327,7 +327,7 @@ local function scalatest_framework()
         if not test_namespace then
             return vim.tbl_flatten({ "sbt", extra_args, project .. "/test" })
         end
-        -- TODO: Run sbt with colors, but figuoure wich ainsi sequence need to be matched.
+        -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
         local test_path = ""
         if tree:data().type == "test" then
             test_path = ' -- -z "' .. name .. '"'
