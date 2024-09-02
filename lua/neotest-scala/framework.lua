@@ -49,12 +49,17 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
         return vim.tbl_flatten({ "sbt", extra_args, project .. "/test" })
     end
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
-    return vim.tbl_flatten({
+    local ret = vim.tbl_flatten({
         "sbt",
         "--no-colors",
         extra_args,
         project .. "/testOnly -- " .. '"' .. test_path .. '"',
     })
+
+    -- print table as string
+    print("command: ", vim.inspect(ret))
+
+    return ret
 end
 
 ---@return neotest-scala.Framework
