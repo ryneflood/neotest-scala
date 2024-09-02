@@ -36,16 +36,17 @@ end
 ---@param extra_args table|string
 ---@return string[]
 local function build_command_with_test_path(project, runner, test_path, extra_args)
-    if runner == "bloop" then
-        local full_test_path
-        if not test_path then
-            full_test_path = {}
-        else
-            full_test_path = { "--", test_path }
-        end
-        return vim.tbl_flatten({ "bloop", "test", extra_args, project, full_test_path })
-    end
+    -- if runner == "bloop" then
+    --     local full_test_path
+    --     if not test_path then
+    --         full_test_path = {}
+    --     else
+    --         full_test_path = { "--", test_path }
+    --     end
+    --     return vim.tbl_flatten({ "bloop", "test", extra_args, project, full_test_path })
+    -- end
     if not test_path then
+        println("no test path...")
         return vim.tbl_flatten({ "sbt", extra_args, project .. "/test" })
     end
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
