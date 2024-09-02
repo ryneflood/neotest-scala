@@ -52,7 +52,7 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     local subcommand = vim.tbl_flatten({
         "root/testOnly",
         "--",
-        '"' .. test_path .. '"',
+        "'" .. test_path .. "'",
     })
 
     local subcommand_joined = table.concat(subcommand, " ")
