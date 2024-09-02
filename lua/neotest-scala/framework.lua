@@ -223,6 +223,7 @@ local function munit_framework()
             end
             if test_suites then
                 local package = utils.get_package_name(tree:data().path)
+                print("package is: ", package)
                 return package .. "*"
             end
         end
