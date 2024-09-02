@@ -67,9 +67,10 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
         "AnotherTestSuite",
         "--",
         -- "AnotherTestSuite.two",
-        '"'
-            .. test_path
-            .. '"',
+        test_path,
+        -- '"'
+        --     .. test_path
+        --     .. '"',
         -- "\"root/testOnly -- 'AnotherTestSuite.example test that fails'\"",
         -- "--no-colors",
         -- extra_args,
