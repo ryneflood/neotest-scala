@@ -60,9 +60,10 @@ local function build_command_with_test_path(project, runner, test_path, extra_ar
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
     local ret = vim.tbl_flatten({
         "sbt",
+        "root/testOnly -- 'AnotherTestSuite.example test that fails",
         -- "--no-colors",
-        extra_args,
-        '"' .. subcommand_joined .. '"',
+        -- extra_args,
+        -- '"' .. subcommand_joined .. '"',
     })
 
     local joined = table.concat(ret, " ")
