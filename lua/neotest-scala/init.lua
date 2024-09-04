@@ -6,6 +6,8 @@ local utils = require("neotest-scala.utils")
 ---@type neotest.Adapter
 local ScalaNeotestAdapter = { name = "neotest-scala" }
 
+print("neotest-scala loaded")
+
 ScalaNeotestAdapter.root = lib.files.match_root_pattern("build.sbt")
 
 ---@async

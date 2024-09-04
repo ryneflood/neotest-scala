@@ -257,8 +257,8 @@ local function munit_framework()
     ---@return string[]
     local function build_command(runner, project, tree, name, extra_args)
         local test_path = build_test_path(tree, name)
-        print("@name is: ", name)
-        print("@test_path: ", test_path)
+        print("@name!!!! is: ", name)
+        -- print("@test_path: ", test_path)
         local parent = test_path.parent
         -- local name = test_path.name
         local test_path = test_path.test_path
