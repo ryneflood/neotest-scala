@@ -35,17 +35,20 @@ end
 ---@param test_path string|nil
 ---@param extra_args table|string
 ---@return string[]
-local function build_command_with_test_path(project, runner, parent, test_path, extra_args)
+local function build_command_with_test_path(project, runner, package, parent, test_path, extra_args)
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
     local command = vim.iter({
         "bloop",
         "test",
         -- this should be the project name
+        -- FIXME: this shouldn't be hard-coded, obviously
         "foo.test",
         "-o",
         -- since we're running the tests for one file here
         -- this is the package name of the file, like foo.bar.TestSuite
-        "foo.bar." .. parent,
+        -- FIXME: rename this @parent argument
+        -- this is really ...the class? not sure
+        package .. parent,
         "--",
         -- now this is the full path to the test to run
         -- something like `foo.bar.TestSuite.some test name`
@@ -183,6 +186,7 @@ local function munit_framework()
 
             return {
                 parent = parent_name,
+                package = package,
                 name = name,
                 test_path = package .. parent_name .. "." .. name,
             }
@@ -231,13 +235,12 @@ local function munit_framework()
     ---@return string[]
     local function build_command(runner, project, tree, name, extra_args)
         local test_path = build_test_path(tree, name)
-        print("@name!!!! is: ", name)
-        -- print("@test_path: ", test_path)
         local parent = test_path.parent
+        local package = test_path.package
         -- local name = test_path.name
         local test_path = test_path.test_path
 
-        return build_command_with_test_path(project, runner, parent, test_path, extra_args)
+        return build_command_with_test_path(project, runner, package, parent, test_path, extra_args)
     end
 
     ---Get test ID from the test line output.

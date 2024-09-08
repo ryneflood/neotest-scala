@@ -8,7 +8,36 @@ local ScalaNeotestAdapter = { name = "neotest-scala" }
 
 print("neotest-scala loaded")
 
-ScalaNeotestAdapter.root = lib.files.match_root_pattern("build.sbt")
+-- FIXME: move this to the utils package
+local get_project_root = function(path)
+    local is_sbt = lib.files.match_root_pattern(path, "build.sbt")
+    local is_gradle = lib.files.match_root_pattern(path, "build.gradle")
+    local is_mill = lib.files.match_root_pattern(path, "build.sc")
+
+    return is_sbt(path) or is_gradle(path) or is_mill(path)
+end
+
+local function get_project_type(path)
+    local is_sbt = lib.files.match_root_pattern(path, "build.sbt")
+    local is_gradle = lib.files.match_root_pattern(path, "build.gradle")
+    local is_mill = lib.files.match_root_pattern(path, "build.sc")
+
+    if is_sbt(path) then
+        return "sbt"
+    end
+
+    if is_gradle(path) then
+        return "gradle"
+    end
+
+    if is_mill(path) then
+        return "mill"
+    end
+
+    return nil
+end
+
+ScalaNeotestAdapter.root = get_project_root
 
 ---@async
 ---@param file_path string
@@ -112,32 +141,64 @@ local function get_bloop_project_name()
     return result
 end
 
+---@return table
+local function get_mill_project_name(path)
+    local projects = {}
+    -- mill resolve _.test will return all the projects in the build which have a test module
+    -- the output will look like:
+    -- ---
+    -- foo.test
+    -- bar.test
+    -- ---
+    print("@path: ", path)
+    local path_obj = Path:new(path)
+    local directory = path_obj:parent():absolute()
+
+    local command = "mill resolve _.test"
+    -- local full_command = "cd " .. directory .. " && " .. command
+    -- local handle = assert(io.popen(full_command), string.format("unable to execute: [%s]", command))
+    local handle = assert(io.popen(command), string.format("unable to execute: [%s]", command))
+    handle:lines()
+    for line in handle:lines() do
+        table.insert(projects, line)
+    end
+    handle:close()
+
+    return projects
+end
+
 ---Get project name from build file.
 ---@return string|nil
 local function get_project_name(path, runner)
     local root = ScalaNeotestAdapter.root(path)
-    -- local build_file = root .. "/build.sc"
-    -- print("build_file is", build_file)
-    -- local success, lines = pcall(lib.files.read_lines, build_file)
-    -- if not success then
-    --     print("unable to read build file")
-    --     print("lines", lines)
-    --     return nil
-    -- end
-    -- for _, line in ipairs(lines) do
-    --     local project = line:match('^name := "(.+)"')
-    --     if project then
-    --         return project
-    --     end
-    -- end
-    -- if runner == "bloop" then
-    --     local bloop_project = get_bloop_project_name()
-    --     if bloop_project then
-    --         return bloop_project
-    --     end
-    -- end
-    -- return nil
+
+    local project_type = get_project_type(root)
+
+    local project_name = nil
+
+    if project_type == "sbt" then
+        -- FIXME: obviously this needs to be implemented
+        project_name = nil
+    elseif project_type == "mill" then
+        project_name = get_mill_project_name(path)
+    elseif project_type == "gradle" then
+        -- FIXME: obviously this needs to be implemented
+        project_name = nil
+    elseif project_type == nil then
+        project_name = nil
+    else
+        project_name = nil
+    end
+
+    if project_name == nil then
+        return nil
+    end
+
+    local projects = table.concat(project_name, ", ")
+    print("Found projects: " .. projects)
+    -- FIXME: obviously this shouldn't be hard-coded
     return "foo.test"
+    -- return nil
 end
 
 ---Builds strategy configuration for running tests.
@@ -258,6 +319,10 @@ function ScalaNeotestAdapter.results(_, result, tree)
     end
     local test_results = framework.get_test_results(lines)
     return get_results(tree, test_results, framework.match_func)
+end
+
+function ScalaNeotestAdapter.get_mill_project_name(path)
+    return get_mill_project_name(path)
 end
 
 local is_callable = function(obj)

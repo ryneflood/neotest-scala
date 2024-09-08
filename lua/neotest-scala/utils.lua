@@ -20,6 +20,7 @@ function M.get_package_name(file)
     if not success then
         return nil
     end
+    -- FIXME: the package might not always be on the first line of the file
     local line = lines[1]
     if vim.startswith(line, "package") then
         return vim.split(line, " ")[2] .. "."
