@@ -36,55 +36,29 @@ end
 ---@param extra_args table|string
 ---@return string[]
 local function build_command_with_test_path(project, runner, parent, test_path, extra_args)
-    -- if runner == "bloop" then
-    --     local full_test_path
-    --     if not test_path then
-    --         full_test_path = {}
-    --     else
-    --         full_test_path = { "--", test_path }
-    --     end
-    --     return vim.tbl_flatten({ "bloop", "test", extra_args, project, full_test_path })
-    -- end
-    -- if not test_path then
-    --     return vim.tbl_flatten({ "sbt", extra_args, project .. "/test" })
-    -- end
-
-    -- local subcommand = vim.tbl_flatten({
-    --     "root/testOnly",
-    --     "--",
-    --     "'" .. test_path .. "'",
-    -- })
-
-    -- local subcommand_joined = table.concat(subcommand, " ")
-    print("project is: ", project)
-    print("test_path: ", test_path)
-
     -- TODO: Run sbt with colors, but figure which ainsi sequence need to be matched.
-    local ret = vim.tbl_flatten({
+    local command = vim.iter({
         "bloop",
         "test",
-        "root-test",
+        -- this should be the project name
+        "foo.test",
         "-o",
-        -- "AnotherTestSuite",
-        parent,
+        -- since we're running the tests for one file here
+        -- this is the package name of the file, like foo.bar.TestSuite
+        "foo.bar." .. parent,
         "--",
-        -- "AnotherTestSuite.two",
+        -- now this is the full path to the test to run
+        -- something like `foo.bar.TestSuite.some test name`
         test_path,
-        -- '"'
-        --     .. test_path
-        --     .. '"',
-        -- "\"root/testOnly -- 'AnotherTestSuite.example test that fails'\"",
-        -- "--no-colors",
-        -- extra_args,
-        -- '"' .. subcommand_joined .. '"',
     })
+        :flatten()
+        :totable()
 
-    local joined = table.concat(ret, " ")
+    local joined = table.concat(command, " ")
 
-    -- print("subcommand would be: ", subcommand_joined)
     print("command would be: ", joined)
 
-    return ret
+    return command
 end
 
 ---@return neotest-scala.Framework

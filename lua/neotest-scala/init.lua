@@ -116,27 +116,28 @@ end
 ---@return string|nil
 local function get_project_name(path, runner)
     local root = ScalaNeotestAdapter.root(path)
-    local build_file = root .. "/build.sbt"
-    print("build_file is", build_file)
-    local success, lines = pcall(lib.files.read_lines, build_file)
-    if not success then
-        print("unable to read build file")
-        print("lines", lines)
-        return nil
-    end
-    for _, line in ipairs(lines) do
-        local project = line:match('^name := "(.+)"')
-        if project then
-            return project
-        end
-    end
-    if runner == "bloop" then
-        local bloop_project = get_bloop_project_name()
-        if bloop_project then
-            return bloop_project
-        end
-    end
-    return nil
+    -- local build_file = root .. "/build.sc"
+    -- print("build_file is", build_file)
+    -- local success, lines = pcall(lib.files.read_lines, build_file)
+    -- if not success then
+    --     print("unable to read build file")
+    --     print("lines", lines)
+    --     return nil
+    -- end
+    -- for _, line in ipairs(lines) do
+    --     local project = line:match('^name := "(.+)"')
+    --     if project then
+    --         return project
+    --     end
+    -- end
+    -- if runner == "bloop" then
+    --     local bloop_project = get_bloop_project_name()
+    --     if bloop_project then
+    --         return bloop_project
+    --     end
+    -- end
+    -- return nil
+    return "foo.test"
 end
 
 ---Builds strategy configuration for running tests.
