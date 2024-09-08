@@ -197,7 +197,7 @@ local function get_project_name(path, runner)
     local projects = table.concat(project_name, ", ")
     print("Found projects: " .. projects)
     -- FIXME: obviously this shouldn't be hard-coded
-    return "foo.test"
+    return project_name[1]
     -- return nil
 end
 
