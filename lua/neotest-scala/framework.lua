@@ -196,6 +196,7 @@ local function munit_framework()
             return build_test_path(parent_tree, utils.get_position_name(parent_pos)) .. "." .. name
         end
         if type == "namespace" then
+            print("it's a namespace...")
             local package = utils.get_package_name(tree:data().path)
             if not package then
                 return nil
@@ -205,6 +206,7 @@ local function munit_framework()
             return {}
         end
         if type == "file" then
+            print("it's a file...")
             local test_suites = {}
             for _, child in tree:iter_nodes() do
                 if child:data().type == "namespace" then
@@ -213,9 +215,14 @@ local function munit_framework()
             end
             if test_suites then
                 local package = utils.get_package_name(tree:data().path)
-                -- return package .. "*"
-                -- FIXME: obviously this doesn't work
-                return {}
+
+                return {
+                    package = package,
+                    -- FIXME: is this correct? no idea
+                    parent = test_suites[1],
+                    name = "*",
+                    test_path = "*",
+                }
             end
         end
         if type == "dir" then
@@ -266,22 +273,24 @@ local function munit_framework()
         for _, line in ipairs(output_lines) do
             line = vim.trim(strip_ainsi_chars(line))
             local current_namespace = get_test_namespace(line)
-            if current_namespace and (not test_namespace or test_namespace ~= current_namespace) then
+            if current_namespace and not test_namespace then
                 test_namespace = current_namespace
             end
-            if test_namespace and vim.startswith(line, "+") then
+            if vim.startswith(line, "+") then
                 local test_name = get_test_name(line, "+")
                 if test_name then
                     local test_id = test_namespace .. "." .. vim.trim(test_name)
+                    print("test_name passed: ", test_id)
                     test_results[test_id] = TEST_PASSED
                 end
-            elseif test_namespace and vim.startswith(line, "==> X") then
+            end
+            if vim.startswith(line, "==> X") then
+                print("test failed: ", line)
                 local test_name = get_test_name(line, "==> X")
-                if test_name then
-                    test_results[vim.trim(test_name)] = TEST_FAILED
-                end
+                test_results[vim.trim(test_name)] = TEST_FAILED
             end
         end
+        print(vim.inspect(test_results))
         return test_results
     end
 
