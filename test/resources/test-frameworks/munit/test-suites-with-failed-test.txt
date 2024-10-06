@@ -1,0 +1,50 @@
+Starting compilation server
+Bloop server started.
+Compiling foo (1 Scala source)
+Compiled foo (1262ms)
+Compiling foo.test (1 Scala source)
+Compiled foo.test (524ms)
+
+Whammy
+5
+foo.bar.MySuite:
+  + hello 0.008s
+  + hello again 0.0s
+Execution took 8ms
+2 tests, 2 passed
+All tests in foo.bar.MySuite passed
+
+foo.bar.OtherSuite:
+==> X foo.bar.OtherSuite.hello  0.012s munit.ComparisonFailException: /home/ryne/workspace/tmp/mill-bloop-neotest/foo/test/src/foo/HelloTest.scala:15
+14:  test("hello"):
+15:    assertEquals(Hello.msg, "Hello World.")
+16:
+values are not the same
+=> Obtained
+Hello World!
+=> Diff (- obtained, + expected)
+-Hello World!
++Hello World.
+    at munit.Assertions.failComparison(Assertions.scala:278)
+  + hello again 0.0s
+Execution took 12ms
+2 tests, 1 passed, 1 failed
+
+The test execution was successfully closed.
+===============================================
+Total duration: 20ms
+1 passed, 1 failed
+
+Failed:
+- foo.bar.OtherSuite:
+  * foo.bar.OtherSuite.hello - munit.ComparisonFailException: /home/ryne/workspace/tmp/mill-bloop-neotest/foo/test/src/foo/HelloTest.scala:15
+14:  test("hello"):
+15:    assertEquals(Hello.msg, "Hello World.")
+16:
+values are not the same
+=> Obtained
+Hello World!
+=> Diff (- obtained, + expected)
+-Hello World!
++Hello World.
+===============================================
