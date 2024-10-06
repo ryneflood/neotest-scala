@@ -62,7 +62,7 @@ return function(config)
         end
         if position.type == "test" then
             -- local root = Project.get_project_root(position.path)
-            ScalaNeotestAdapter.root(position.path)
+            -- ScalaNeotestAdapter.root(position.path)
             local parent = tree:parent():data()
             vim.uri_from_fname(root)
             -- Constructs ScalaTestSuitesDebugRequest request.
@@ -129,9 +129,8 @@ return function(config)
             end
             return false
         end,
-        discover_positions = function(path)
-            return Position.discover_positions(path)
-        end,
+        discover_positions = Position.discover_positions,
+
         ---@param args neotest.RunArgs
         ---@return neotest.RunSpec
         build_spec = function(args)
@@ -159,10 +158,16 @@ return function(config)
                 scala_runner = get_scala_runner(config.mode)
             end
 
-            print("path is", args.tree:data().path)
+            -- print("path is", args.tree:data().path)
+            -- print("root path is: ", Mill.get_project_root(args.tree:data().path))
+            local project_root = Mill.get_project_root(args.tree:data().path)
 
             -- local test_framework = Mill.get_test_framework(args.tree:data().path, project_name)
-            local test_framework = "zio-test"
+            -- local test_framework = "zio-test"
+            print("project_root", project_root)
+            local test_framework = Mill.get_test_framework(project_root, project_name)
+
+            print("found test framework", test_framework)
 
             local command = utils.prepare_command(
                 scala_runner,

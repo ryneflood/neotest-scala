@@ -1,6 +1,6 @@
 build-runner-native:
   #!/usr/bin/env bash
-  docker build -t scala-test-runner -f runner/Dockerfile .
+  docker build -t scala-test-runner -f scala-runner/Dockerfile .
   
   # Create a container from the image
   container_id=$(docker create scala-test-runner:latest)

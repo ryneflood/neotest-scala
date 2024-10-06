@@ -721,4 +721,20 @@ describe("adapter", function()
             assert.is_same(expected.command, result.command)
         end)
     end)
+
+    describe("#get_project_root", function()
+        local Mill = require("neotest-scala.project_framework_mill")
+
+        it("should find the project root for a file in a Mill project", function()
+            local file_path =
+                "/home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/mill-project/bar/test/src/bar/Main.scala"
+
+            local result = Mill.get_project_root(file_path)
+
+            local expected =
+                "/home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/mill-project"
+
+            assert.is_same(expected, result)
+        end)
+    end)
 end)
