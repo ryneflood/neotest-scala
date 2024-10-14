@@ -30,22 +30,21 @@ local M = {}
 ---@param position neotest.Position
 ---@return string
 function M.get_position_name(position)
-    -- print("get_position_name", vim.inspect(position.name))
-    if position.type == "test" then
-        local value = string.gsub(position.name, '"', "")
-        return value
-    end
-    return position.name
-end
+    print("get_position_name", vim.inspect(position.name))
+    -- if position.type == "test" then
+    -- remove quotes from the test name
+    -- if the string starts with `'"` and ends with `"'`, remove them using a regex
+    local without_quotes = string.gsub(position.name, [[^'"(.+)"'$]], "%1")
 
----Get a package name from the top of the file.
-function M.ends_with(input_string, word)
-    -- Get the lengths of the input string and the word
-    local input_len = string.len(input_string)
-    local word_len = string.len(word)
+    local without_quotes_again = string.gsub(without_quotes, '"', "")
 
-    -- Compare the end of the input string to the word
-    return string.sub(input_string, -word_len) == word
+    print("without_quotes", without_quotes_again)
+
+    return without_quotes_again
+    -- string.gsub(position.name, '"', "")_
+    -- return value
+    -- end
+    -- return position.name
 end
 
 function M.get_test_runner(path)

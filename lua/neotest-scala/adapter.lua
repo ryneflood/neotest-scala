@@ -194,6 +194,7 @@ return function(config)
         ---@param result neotest.StrategyResult
         ---@return neotest.Result[]
         results = function(spec, result)
+            -- print("spec", vim.inspect(spec))
             -- FIXME: write a test for this
             local test_results = {}
             local success, contents = pcall(lib.files.read, result.output)
@@ -227,6 +228,8 @@ return function(config)
                     output = node.output,
                 }
             end
+
+            print("test_results", vim.inspect(test_results))
 
             return test_results
         end,

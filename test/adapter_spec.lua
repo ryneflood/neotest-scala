@@ -506,6 +506,70 @@ describe("adapter", function()
             assert.is_same(expected, result)
         end)
 
+        async.it("should find multiple, nested, Test Suites within a file [zio-test]", function()
+            local spec = [[
+                package bar
+
+                import bar.Hello
+
+                import zio.test._
+
+                object HelloWorldSpec extends ZIOSpecDefault:
+                    def spec =
+                        suite("HelloWorldSpec")(
+                            test("Test But Not a Suite") {
+                                assertTrue(Hello.msg == "Hello World, from Bar")
+                            },
+                            suite("Nested Suite")(
+                                test("HelloWorld should say hello") {
+                                    assertTrue(Hello.msg == "Hello World, from Bar")
+                                },
+                                test("HelloWorld should say hello but different") {
+                                    val expected = "Expected"
+                                    val result = Hello.msg
+
+                                    assertTrue(Hello.msg == "Hello World, from Bar")
+                                }
+                            ),
+                            test("Another Test That's Not a Suite") {
+                                assertTrue(Hello.msg == "Hello World, from Bar")
+                            },
+                            suite("Another Nested Suite")(
+                                test("HelloWorld should say hello") {
+                                    assertTrue(Hello.msg == "Hello World, from Bar")
+                                },
+                                test("HelloWorld should say hello but different") {
+                                    val result = Hello.msg
+
+                                    assertTrue(Hello.msg == "Hello World, from Bar.")
+                                }
+                            ),
+                            test("One More Test That's at the Bottom") {
+                                assertTrue(Hello.msg == "Hello World, from Bar")
+                            }
+                        )
+            ]]
+
+            local fpath = vim.fn.tempname() .. ".scala"
+            files.write(fpath, spec)
+
+            local tree = position.discover_positions(fpath)
+            -- print("tree is: ", vim.inspect(tree))
+            local test_position = position.find_position(tree, fpath)
+            local result = Munit.extract_test_suites(test_position)
+
+            local expected = {
+                type = "file",
+                test_suites = {
+                    "bar.HelloWorldSpec",
+                    "bar.HelloWorldSpec.Nested Suite",
+                    "bar.HelloWorldSpec.Another Nested Suite",
+                },
+            }
+
+            assert.is_same(expected, result)
+        end)
+
         async.it("should find multiple, nested, Test Suites within a file", function()
             local spec = [[
           package foo.bar

@@ -295,3 +295,5 @@ Oct 06, 2024 11:39:11 AM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancella
 WARNING: Unmatched cancel notification for request id 8
 2024.10.06 11:39:10 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/mill-project/bar/test/src/bar/Main.scala. Using presentation compiler with project's scala-library version: 3.3.3[0m
 2024.10.06 11:39:18 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/mill-project/bar/test/src/bar/Main.scala. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.10.06 12:58:41 INFO  Shutting down server[0m
+2024.10.06 12:58:41 INFO  shutting down Metals[0m

@@ -13,92 +13,11 @@ function M.get_position_name(position)
     end
     return position.name
 end
-
----@param pos neotest.Position
----@return string
--- local get_parent_name = function(pos)
---     if pos.type == "dir" or pos.type == "file" then
---         return ""
---     end
---     if pos.type == "namespace" then
---         print("from get_parent_name, it's a namespace")
---         -- local parent_name = M.get_package_name(pos.path) .. "." .. pos.name
---         -- print("parent_name", parent_name)
---         return M.get_package_name(pos.path) .. "." .. pos.name
---     end
---     return utils.get_position_name(pos)
--- end
---
--- local function findCommonPrefix(str1, str2)
---     local len1, len2 = #str1, #str2
---     local i = 1
---
---     -- Compare characters until they diverge
---     while i <= len1 and i <= len2 do
---         if str1:sub(i, i) ~= str2:sub(i, i) then
---             break
---         end
---         i = i + 1
---     end
---
---     -- Return the common substring
---     return str1:sub(1, i - 1)
--- end
-
--- Function to find common prefix in a list of strings
--- local function findCommonPrefixInValues(strings)
---     if #strings == 0 then
---         return ""
---     end
---
---     local commonPrefix = strings[1]
---
---     for i = 2, #strings do
---         commonPrefix = findCommonPrefix(commonPrefix, strings[i])
---
---         -- Early exit if there's no common prefix
---         if commonPrefix == "" then
---             break
---         end
---     end
---
---     return commonPrefix
--- end
-
--- local function flatten_parent_namespaces(parents)
---     -- if there's only one test suite/no parents, then just return the test suite name
---     if #parents == 1 then
---         return parents
---     end
---
---     -- otherwise, we'll have a list of fully-qualified test suite names
---     -- like
---     -- foo.bar.FooSuite
---     -- foo.bar.BarSuite
---     local commonprefix = findCommonPrefixInValues(parents)
---
---     -- find the common substring between the list items
---     local result = {}
---
---     -- map over each entry in the table
---     for _, parent in ipairs(parents) do
---         print("parent", parent)
---         -- remove the common prefix from each entry
---         local suite_name = parent:sub(#commonprefix + 1)
---         -- add the suffix to the result table
---         table.insert(result, suite_name)
---     end
---
---     return commonprefix .. table.concat(result, "$")
--- end
-
 ---@param position neotest.Position The position to return an ID for
 ---@param parents neotest.Position[] Parent positions for the position
 ---@return string
-function M.build_position_id(position, parents)
+function M.build_position_id_munit(position, parents)
     local parent_values = {}
-    -- alright, I see what's happening
-    -- we can call this recursively to build the fully-qualified id of each test suite
     if position.type == "namespace" then
         if #parents == 0 then
             local package_name = M.get_package_name(position.path)
@@ -130,6 +49,78 @@ function M.build_position_id(position, parents)
         )
 
         local updated_value = value .. "." .. utils.get_position_name(position)
+
+        return updated_value
+    end
+end
+
+---@param position neotest.Position The position to return an ID for
+---@param parents neotest.Position[] Parent positions for the position
+---@return string
+function M.build_position_id(position, parents)
+    print("Building position id for", position.name)
+    print("Type: ", position.type)
+    print("Parents: ", vim.inspect(parents))
+    -- get the treesitter tree node for the position
+    -- local tree = position.print("Tree: ", vim.inspect(tree))
+    local parent_values = {}
+    -- alright, I see what's happening
+    -- we can call this recursively to build the fully-qualified id of each test suite
+    if position.type == "namespace" then
+        if #parents == 0 then
+            local package_name = M.get_package_name(position.path)
+
+            local position_name = utils.get_position_name(position)
+
+            local value = package_name .. "." .. position_name
+
+            return value
+        end
+
+        local parent = parents[#parents]
+
+        local position_name = utils.get_position_name(position)
+
+        -- if position.type == "test" then
+        --     local value = string.gsub(position.name, '"', "")
+        --     return value
+        -- end
+
+        -- print("Position name: ", position_name)
+
+        return parent.id .. "." .. position_name
+    else
+        for i, parent in ipairs(parents) do
+            if i == 1 then
+                print("Parent id: ", parent.id)
+                -- local parent_name = utils.get_position_name(parent)
+
+                -- print("Fixed parent name: ", parent_name)
+                table.insert(parent_values, parent.id)
+            else
+                print("Parent name: ", parent.name)
+                local parent_name = utils.get_position_name(parent)
+
+                print("Fixed parent name: ", parent_name)
+
+                table.insert(parent_values, parent_name)
+            end
+        end
+
+        local value = table.concat(
+            vim.iter({
+                parent_values,
+            })
+                :flatten()
+                :totable(),
+            "."
+        )
+
+        local position_name = utils.get_position_name(position)
+
+        -- print("position_name", position_name)
+
+        local updated_value = value .. "." .. position_name
 
         return updated_value
     end
@@ -189,29 +180,127 @@ function M.get_package_name(path)
     return nil -- If no package found
 end
 
+local function get_match_type(captured_nodes)
+    if captured_nodes["suite.name"] then
+        return "suite"
+    end
+    if captured_nodes["test.name"] then
+        return "test"
+    end
+    if captured_nodes["namespace.name"] then
+        return "namespace"
+    end
+end
+
+function M.build_position(file_path, source, captured_nodes)
+    -- print("#build_position")
+    -- print("file_path: ", file_path)
+    -- print("source: ", source)
+    -- print("captured_nodes: ", vim.inspect(captured_nodes))
+    local match_type = get_match_type(captured_nodes)
+    -- print("match_type: ", match_type)
+    -- local match_type = get_match_type(captured_nodes)
+    if not match_type then
+        return
+    end
+    local name = vim.treesitter.get_node_text(captured_nodes[match_type .. ".name"], source)
+    -- print("name: ", name)
+    local definition = captured_nodes[match_type .. ".definition"]
+
+    local parent = definition:parent():parent()
+
+    -- local node = vim.treesitter.get_node(definition)
+
+    -- print("node: ", vim.inspect(node))
+
+    -- print("parent: ", vim.inspect(parent))
+
+    -- local parent_name = vim.treesitter.get_node_text(parent, source)
+
+    -- print("parent_name: ", parent_name)
+
+    ---@type string
+    -- local name = vim.treesitter.get_node_text(captured_nodes[match_type .. ".name"], source)
+    -- local definition = captured_nodes[match_type .. ".definition"]
+
+    -- return {
+    --   type = match_type,
+    --   path = file_path,
+    --   name = name,
+    --   range = { definition:range() },
+    --   is_parameterized = captured_nodes["each_property"] and true or false,
+    -- }
+    return {}
+end
+
 function M.discover_positions(path)
-    -- print("Discovering positions for", path)
+    -- (call_expression
+    -- function: (call_expression
+    --     function: (identifier)
+    --     arguments: (arguments
+    --     (string) @test.name))
+    -- ) @test.definition
+    local zio_test_query = [[
+	    ;(object_definition
+	    ;name: (identifier) @namespace.name)
+	    ;@namespace.definition
+        
+        ((call_expression
+            function: (call_expression
+            function: (identifier) @func_name (#match? @func_name "test")
+            arguments: (arguments (string) @test.name))
+        )) @test.definition
+        
+        ((call_expression
+            function: (call_expression
+            function: (identifier) @func_name (#match? @func_name "suite")
+            arguments: (arguments (string) @namespace.name))
+        )) @namespace.definition
+    ]]
+    local suite_query = [[
+    
+    (call_expression
+        function: (call_expression
+            function: (identifier)
+            arguments: (arguments
+            (string)))
+        arguments: (arguments
+            (call_expression
+            function: (call_expression
+                function: (identifier)
+                arguments: (arguments
+                (string) @test.name))
+            arguments: (block
+                (call_expression
+                function: (identifier)
+                arguments: (arguments
+            )))
+            ) @test.definition
+        ))
+    ]]
+
     local query = [[
-	            (object_definition
-	            name: (identifier) @namespace.name)
-	            @namespace.definition
-	            
-                (class_definition
-                name: (identifier) @namespace.name)
-                @namespace.definition
+	    (object_definition
+	    name: (identifier) @namespace.name)
+	    @namespace.definition
+	    
+        (class_definition
+        name: (identifier) @namespace.name)
+        @namespace.definition
 
-                ((call_expression
-                  function: (call_expression
-                  function: (identifier) @func_name (#match? @func_name "test")
-                  arguments: (arguments (string) @test.name))
-                )) @test.definition
-            ]]
+        ((call_expression
+            function: (call_expression
+            function: (identifier) @func_name (#match? @func_name "test")
+            arguments: (arguments (string) @test.name))
+        )) @test.definition
+    ]]
 
-    local positions = lib.treesitter.parse_positions(
-        path,
-        query,
-        { nested_tests = true, require_namespaces = true, position_id = M.build_position_id }
-    )
+    local positions = lib.treesitter.parse_positions(path, zio_test_query, {
+        nested_tests = true,
+        require_namespaces = false,
+        position_id = M.build_position_id,
+        -- build_position = M.build_position,
+    })
 
     return positions
 end
