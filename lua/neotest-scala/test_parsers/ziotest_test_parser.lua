@@ -1,0 +1,357 @@
+local lib = require("neotest.lib")
+local position = require("neotest-scala.position")
+local utils = require("neotest-scala.utils")
+local types = require("neotest-scala.types")
+
+local M = {}
+
+M.type = types.TEST_FRAMEWORKS.ZIO_TEST
+
+function M.get_container_object(path, child_range)
+    local query = [[
+        (object_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (type_identifier))) @object.definition
+    ]]
+
+    return position.get_containing_object(path, child_range, query)
+end
+
+---@param path string
+---@return string|nil
+function M.get_package_name(path)
+    local file_content = lib.files.read(path)
+    local ts = vim.treesitter
+    local parser = ts.get_string_parser(file_content, "scala")
+    local tree = parser:parse()[1]
+    local root = tree:root()
+
+    local query = [[
+      (package_clause (package_identifier) @package)
+    ]]
+
+    local query_obj = ts.query.parse("scala", query)
+
+    for _, captures, _ in query_obj:iter_matches(root, file_content) do
+        for id, node in pairs(captures) do
+            local name = query_obj.captures[id] -- capture name
+            if name == "package" then
+                local package_name = vim.treesitter.get_node_text(node, file_content)
+
+                return package_name
+            end
+        end
+    end
+
+    return nil -- If no package found
+end
+
+---@param position neotest.Position
+---@return string
+function M.get_position_name(position)
+    -- when the position is parsed, its name is wrapped in quotes for some reason
+    -- so, we'll strip them out so we can use the name as an id
+    local position_name, _ = string.gsub(position.name, [[^"(.+)"$]], "%1")
+
+    return position_name
+end
+
+---@param position neotest.Position
+---@param parents neotest.Position[]
+---@return string
+function M.build_position_id(position, parents)
+    local type = position.type
+    -- print("type: " .. type)
+
+    local position_name = M.get_position_name(position)
+
+    if type == "namespace" then
+        -- print("it's a namespace")
+        -- if we're given a namespace, and it has no parents
+        -- then we want to prefix the id with the package name
+        if #parents == 0 then
+            local containing_object_name = M.get_container_object(position.path, position.range).name
+            local package_name = M.get_package_name(position.path)
+            return package_name .. "." .. containing_object_name .. "." .. position_name
+        else
+            -- otherwise, if it has parents, we'll return just the name
+            -- TODO: fix this properly so that we supported unlimited nesting
+            -- get the first parent
+            local parent = parents[1]
+            return parent.id .. "." .. position_name
+        end
+    elseif type == "test" then
+        -- FIXME: clean this up, right?
+        local parent_values = {}
+
+        for i, parent in ipairs(parents) do
+            if i == 1 then
+                table.insert(parent_values, parent.id)
+            else
+                local parent_name = M.get_position_name(parent)
+
+                table.insert(parent_values, parent_name)
+            end
+        end
+
+        local value = table.concat(
+            vim.iter({
+                parent_values,
+            })
+                :flatten()
+                :totable(),
+            "."
+        )
+
+        -- FIXME: this is a poor name for this variable
+        local updated_value = value .. "." .. position_name
+
+        return updated_value
+    else
+        -- FIXME: what do we want to do here?
+        -- basically, we have an unknown Node Type here
+        return ""
+    end
+end
+
+---@param path string
+---@return neotest.Position[]
+function M.discover_positions(path)
+    local query = [[
+        (object_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (type_identifier))) @object.definition
+        
+        ((call_expression
+            function: (call_expression
+            function: (identifier) @func_name (#match? @func_name "test")
+            arguments: (arguments (string) @test.name))
+        )) @test.definition
+        
+        ((call_expression
+            function: (call_expression
+            function: (identifier) @func_name (#match? @func_name "suite")
+            arguments: (arguments (string) @namespace.name))
+        )) @namespace.definition
+    ]]
+
+    local positions = lib.treesitter.parse_positions(path, query, {
+        nested_tests = true,
+        require_namespaces = true,
+        position_id = M.build_position_id,
+    })
+
+    return positions
+end
+
+function M.find_runnable_specs(path)
+    -- FIXME: we can be more specific with this query; we only want to match
+    -- object that extend ZIODefaultSpec, or whatever that's called
+    local query = [[
+        (object_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (type_identifier))) @object.definition
+    ]]
+
+    local object_names = {}
+
+    local positions = lib.treesitter.parse_positions(path, query, {
+        nested_tests = false,
+        require_namespaces = false,
+        build_position = position.build_position,
+    })
+
+    for _, position in positions:iter() do
+        -- TODO: is this test necessary? We're already querying
+        -- for object definitions, so we should only get objects?
+        if position.type == "object" then
+            table.insert(object_names, position.name)
+        end
+    end
+
+    return object_names
+end
+
+-- so Neotest will give us a Tree, which could represent any of:
+-- Object, Test, File, Namespace, Dir
+-- and we'll have to take this Tree and parse it into a ParsedPosition, which represents
+-- TODO: need a better name for `ParsedPosition`
+-- the "thing" that we want to test
+-- so, for example, if we're given a Dir, then we'll want to run all of the tests for all of the Files in the Directory
+-- if we're given a File, then we want to run all of Suites/Tests in the file
+-- if we're given a Namespace, then we want to run all of the Tests in that Namespace
+-- if we're given a Test, then we want to run that single Test
+---@param tree neotest.Tree
+---@return neotestscala.ParsedPosition
+function M.parse_tree(tree)
+    local type = tree:data().type
+
+    if type == "file" then
+        -- in this case we want to run all of the tests in the file
+        -- so, we'll want to provide the test runner with the name(s) of the main
+        -- object(s) in the file
+        local package_name = position.get_package_name(tree:data().path)
+        local object_names = M.find_runnable_specs(tree:data().path)
+
+        local positions = {}
+
+        for _, object_name in ipairs(object_names) do
+            table.insert(positions, package_name .. "." .. object_name)
+        end
+
+        --@type neotestscala.ParsedPosition
+        return {
+            type = type,
+            positions = {},
+            only = positions,
+            test_framework = test_framework,
+        }
+    end
+
+    if type == "test" then
+        -- in this case we want to run a single test
+        -- which is pretty straightforward: we'll include only
+        -- the one ZIODefaultSpec and the ID of the Test itself
+
+        local package_name = position.get_package_name(tree:data().path)
+        -- we need to find the "containing" object of the test suite
+        -- basically, the ZIODefaultSpec in which the Test Suite lives
+        local containing_object = M.get_container_object(tree:data().path, tree:data().range)
+
+        --@type neotestscala.ParsedTest
+        local position = {
+            name = M.get_position_name(tree:data()),
+            id = tree:data().id,
+        }
+
+        --@type neotestscala.ParsedPosition
+        return {
+            type = type,
+            only = {
+                package_name .. "." .. containing_object.name,
+            },
+            positions = {
+                position,
+            },
+        }
+    end
+
+    if type == "namespace" then
+        -- in ZIO Test a namespace is a Test Suite
+        -- and we'll tell the Test Runner to run the entire suite
+        -- so, we'll just want to return the ID of the Namespace itself
+
+        local package_name = position.get_package_name(tree:data().path)
+        -- we need to find the "containing" object of the test suite
+        -- basically, the ZIODefaultSpec in which the Test Suite lives
+        local containing_object = M.get_container_object(tree:data().path, tree:data().range)
+        -- TODO: we should probably check if the containing object is nil here
+        local containing_object_name = containing_object.name
+
+        local position = {
+            name = M.get_position_name(tree:data()),
+            id = tree:data().id,
+        }
+
+        --@type neotestscala.ParsedPosition
+        return {
+            type = type,
+            only = {
+                package_name .. "." .. containing_object_name,
+            },
+            positions = {
+                position,
+            },
+        }
+    end
+
+    if type == "dir" then
+        local only = {}
+
+        for _, child in tree:iter_nodes() do
+            if child:data().type == "namespace" then
+                -- in this case we want to run all of the tests in the file
+                -- so, we'll want to provide the test runner with the name(s) of the main
+                -- object(s) in the file
+                local package_name = position.get_package_name(child:data().path)
+                local object_names = M.find_runnable_specs(child:data().path)
+
+                for _, object_name in ipairs(object_names) do
+                    local fully_qualified_name = package_name .. "." .. object_name
+
+                    table.insert(only, fully_qualified_name)
+                end
+            end
+        end
+
+        local without_duplicates = utils.remove_duplicates(only)
+
+        --@type neotestscala.ParsedPosition
+        return {
+            type = type,
+            positions = {},
+            only = without_duplicates,
+        }
+    end
+
+    error("Unknown type: " .. type)
+end
+
+---@param position neotest.Position
+function M.get_test_framework_name(fpath)
+    local file_content = lib.files.read(fpath)
+    local ts = vim.treesitter
+    local parser = ts.get_string_parser(file_content, "scala")
+    local tree = parser:parse()[1]
+    local root = tree:root()
+
+    local query = [[;;query
+        (object_definition
+            name: (identifier)
+            extend: (extends_clause
+            type: (type_identifier) @type.id))
+            
+        (object_definition
+            name: (identifier)
+            extend: (extends_clause
+            type: (stable_type_identifier) @type.id))
+
+        (class_definition
+            name: (identifier)
+            extend: (extends_clause
+            type: (stable_type_identifier
+                (identifier)
+                (type_identifier) @type.id))
+        )
+    ]]
+
+    local query_obj = ts.query.parse("scala", query)
+
+    for _, captures, _ in query_obj:iter_matches(root, file_content) do
+        for id, node in pairs(captures) do
+            local name = query_obj.captures[id] -- capture name
+            if name == "type.id" then
+                local object_name = vim.treesitter.get_node_text(node, file_content)
+
+                print("object_name: " .. object_name)
+
+                -- test if object_name contains the text "ZIODefaultSpec"
+                if string.find(object_name, "ZIOSpecDefault") then
+                    return types.TEST_FRAMEWORKS.ZIO_TEST
+                end
+                if string.find(object_name, "FunSuite") then
+                    return types.TEST_FRAMEWORKS.MUNIT
+                end
+
+                -- return object_name
+            end
+        end
+    end
+
+    return nil
+end
+
+return M

@@ -1,0 +1,20 @@
+2024.12.01 10:17:55 INFO  Started: Metals version 1.3.3 in folders '/home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli' for client Neovim 0.10.2.[0m
+SLF4J(W): Class path contains multiple SLF4J providers.
+SLF4J(W): Found provider [scribe.slf4j.ScribeServiceProvider@7405c93]
+SLF4J(W): Found provider [ch.qos.logback.classic.spi.LogbackServiceProvider@624a14df]
+SLF4J(W): See https://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J(I): Actual provider is of type [scribe.slf4j.ScribeServiceProvider@7405c93]
+2024.12.01 10:17:55 WARN  Flyway upgrade recommended: H2 2.2.224 is newer than this version of Flyway and support has not been tested. The latest supported version of H2 is 2.2.220.[0m
+2024.12.01 10:17:55 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.12.01 10:17:56 WARN  Could not find semantic tokens for: file:///home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt[0m
+2024.12.01 10:17:57 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.12.01 10:17:57 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.12.01 10:17:57 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.12.01 10:17:57 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.12.01 10:17:58 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+Dec 01, 2024 10:17:58 AM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleCancellation
+WARNING: Unmatched cancel notification for request id 9
+2024.12.01 10:17:58 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.12.01 10:18:04 INFO  no build target found for /home/ryne/workspace/@rocketpants/neovim/neotest-scala/test/resources/projects/scala-cli/build.sbt. Using presentation compiler with project's scala-library version: 3.3.3[0m
+2024.12.01 10:18:46 INFO  Shutting down server[0m
+2024.12.01 10:18:46 INFO  shutting down Metals[0m
