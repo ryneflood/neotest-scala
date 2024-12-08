@@ -4,24 +4,43 @@ local lib = require("neotest.lib")
 local position = require("neotest-scala.position")
 local types = require("neotest-scala.types")
 local utils = require("neotest-scala.utils")
+local func_util = require("neotest.lib.func_util")
 
 local M = {}
 
-local query = [[
+local query = [[;;query
     (class_definition
         name: (identifier) @namespace.name
         extend: (extends_clause
         type: (stable_type_identifier))) @namespace.definition
+
+    ((class_definition
+        name: (identifier) @namespace.name
+        extend: (extends_clause
+        type: (type_identifier))
+    ) @namespace.definition)
     
     ((call_expression
         function: (call_expression
         function: (identifier) @func_name (#match? @func_name "test")
         arguments: (arguments (string) @test.name))
     )) @test.definition
+
+    ((call_expression
+        function: (call_expression
+        function: (identifier) @func_name (#match? @func_name "it")
+        arguments: (arguments (string) @test.name))
+    )) @test.definition
     
     ((call_expression
         function: (call_expression
         function: (identifier) @func_name (#match? @func_name "suite")
+        arguments: (arguments (string) @namespace.name))
+    )) @namespace.definition
+
+    ((call_expression
+        function: (call_expression
+        function: (identifier) @func_name (#match? @func_name "describe")
         arguments: (arguments (string) @namespace.name))
     )) @namespace.definition
 ]]
@@ -90,6 +109,12 @@ function M.get_container_object(path, child_range)
                 (identifier)
                 (type_identifier)))
         ) @object.definition)
+        
+        ((class_definition
+            name: (identifier)
+            extend: (extends_clause
+            type: (type_identifier))
+        ) @object.definition)
     ]]
 
     return position.get_containing_object(path, child_range, query)
@@ -103,7 +128,8 @@ function M.build_position_id(position, parents)
 
     local position_name = M.get_position_name(position)
 
-    print("position_name: " .. position_name)
+    -- print("position_name: " .. position_name)
+    -- print("type is " .. type)
 
     if type == "namespace" then
         print("it's a namespace")
@@ -120,11 +146,9 @@ function M.build_position_id(position, parents)
                 return package_name .. "." .. position_name
             end
         else
-            -- otherwise, if it has parents, we'll return just the name
-            -- TODO: fix this properly so that we supported unlimited nesting
-            -- get the first parent
-            local parent = parents[1]
-            return parent.id .. "." .. position_name
+            local closest_parent = parents[#parents]
+
+            return closest_parent.id .. "." .. position_name
         end
     elseif type == "test" then
         -- FIXME: clean this up, right?
@@ -149,8 +173,12 @@ function M.build_position_id(position, parents)
             "."
         )
 
+        print("value is... " .. value)
+
         -- FIXME: this is a poor name for this variable
         local updated_value = value .. "." .. position_name
+
+        print("updated_value is... " .. updated_value)
 
         return updated_value
     else

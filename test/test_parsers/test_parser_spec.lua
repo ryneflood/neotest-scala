@@ -32,7 +32,6 @@ local function assert_has_positions(spec, pos_ids)
     end
 end
 
--- TODO: obviously this isn't a "single" spec anymore
 local zio_test_spec = [[
     package bar
 
@@ -79,6 +78,46 @@ local munit_spec = [[
       assertEquals(Hello.msg, "Hello World!")
 ]]
 
+local scalatest_fun_spec = [[
+    package foo.bar
+
+    import org.scalatest.funspec.AnyFunSpec
+
+    class FooSuite extends AnyFunSpec {
+        describe("Foo Suite") {
+            describe("Bar Suite") {
+                it("Baz") {
+                    assert(true == true)
+                }
+            }
+            it("Foo") {
+                assert(true == true)
+            }
+            it("Bar") {
+                assert(true == true)
+            }
+        }
+    }
+]]
+
+local scalatest_fun_suite = [[
+    package foo.bar
+
+    import org.scalatest.funsuite.AnyFunSuite
+
+    class FooSuite extends AnyFunSuite {
+        test("Baz") {
+            assert("true" == "true")
+        }
+        test("Foo") {
+            assert(true == true)
+        }
+        test("Bar") {
+            assert(true == true)
+        }
+    }
+]]
+
 describe("Test Parser", function()
     describe("find_positions", function()
         describe("zio-test", function()
@@ -106,6 +145,30 @@ describe("Test Parser", function()
                 }
 
                 assert_has_positions(munit_spec, expected)
+            end)
+        end)
+
+        describe("scala-test", function()
+            async.it("should find the Test Suite + Test in a file (AnyFunSpec)", function()
+                local expected = {
+                    "foo.bar.FooSuite.Foo Suite",
+                    "foo.bar.FooSuite.Foo Suite.Bar Suite",
+                    "foo.bar.FooSuite.Foo Suite.Bar Suite.Baz",
+                    "foo.bar.FooSuite.Foo Suite.Foo",
+                    "foo.bar.FooSuite.Foo Suite.Bar",
+                }
+
+                assert_has_positions(scalatest_fun_spec, expected)
+            end)
+
+            async.it("should find the Test Suite + Test in a file (AnyFunSuite)", function()
+                local expected = {
+                    "foo.bar.FooSuite.Baz",
+                    "foo.bar.FooSuite.Foo",
+                    "foo.bar.FooSuite.Bar",
+                }
+
+                assert_has_positions(scalatest_fun_suite, expected)
             end)
         end)
     end)
