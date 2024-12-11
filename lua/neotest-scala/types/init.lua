@@ -21,6 +21,7 @@ M.PROJECT_TYPES = {
 M.TEST_FRAMEWORKS = {
     MUNIT = "munit",
     ZIO_TEST = "zio-test",
+    SCALATEST = "scalatest",
 }
 
 return M

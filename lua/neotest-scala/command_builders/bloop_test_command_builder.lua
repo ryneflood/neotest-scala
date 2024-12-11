@@ -9,8 +9,6 @@ function M.build_command(runner_path, project, build_tool, parsed_position)
     local only = {}
     local tests = {}
 
-    print("#build_command", parsed_position.test_framework)
-
     for _, position in ipairs(parsed_position.only) do
         table.insert(only, "--only")
         table.insert(only, position)
@@ -24,6 +22,15 @@ function M.build_command(runner_path, project, build_tool, parsed_position)
             -- surround the position in quotes
             table.insert(tests, '"' .. position.name .. '"')
         end
+    elseif parsed_position.test_framework == types.TEST_FRAMEWORKS.SCALATEST then
+        -- bloop test baz.test -o foo.bar.FooSuite -- -z "Foo Suite Bar Suite"
+        -- we want a test command like ^^
+        --
+        -- for _, position in ipairs(parsed_position.positions) do
+        --     table.insert(tests, "--test")
+        --     -- surround the position in quotes
+        --     table.insert(tests, '"' .. position.name .. '"')
+        -- end
     else
         for _, position in ipairs(parsed_position.positions) do
             table.insert(tests, "--test")

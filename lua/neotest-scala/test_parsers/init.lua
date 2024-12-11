@@ -9,26 +9,27 @@ local func_util = require("neotest.lib.func_util")
 local M = {}
 
 local query = [[;;query
-    (class_definition
-        name: (identifier) @namespace.name
-        extend: (extends_clause
-        type: (stable_type_identifier))) @namespace.definition
-
     ((class_definition
         name: (identifier) @namespace.name
         extend: (extends_clause
-        type: (type_identifier))
+        type: (stable_type_identifier) @type_id (#eq? @type_id "munit.FunSuite")
+        )) @namespace.definition)
+
+    ((class_definition
+        name: (identifier) @namespace.name 
+        extend: (extends_clause
+        type: (type_identifier) @class_name (#eq? @class_name "AnyFunSuite"))
     ) @namespace.definition)
     
     ((call_expression
         function: (call_expression
-        function: (identifier) @func_name (#match? @func_name "test")
+        function: (identifier) @func_name (#eq? @func_name "test")
         arguments: (arguments (string) @test.name))
     )) @test.definition
 
     ((call_expression
         function: (call_expression
-        function: (identifier) @func_name (#match? @func_name "it")
+        function: (identifier) @func_name (#eq? @func_name "it")
         arguments: (arguments (string) @test.name))
     )) @test.definition
     
@@ -91,7 +92,7 @@ function M.get_position_name(position)
 end
 
 function M.get_container_object(path, child_range)
-    local query = [[
+    local query = [[;;query
         (object_definition
             name: (identifier) @object.name
             extend: (extends_clause
@@ -102,19 +103,19 @@ function M.get_container_object(path, child_range)
             extend: (extends_clause
             type: (stable_type_identifier))) @object.definition
             
-        ((class_definition
-            name: (identifier)
-            extend: (extends_clause
-            type: (stable_type_identifier
-                (identifier)
-                (type_identifier)))
-        ) @object.definition)
+        ;;((class_definition
+        ;;    name: (identifier) @object.name
+        ;;    extend: (extends_clause
+        ;;    type: (stable_type_identifier
+        ;;        (identifier)
+        ;;        (type_identifier)))
+        ;;) @object.definition)
         
-        ((class_definition
-            name: (identifier)
+        (class_definition
+            name: (identifier) @object.name
             extend: (extends_clause
-            type: (type_identifier))
-        ) @object.definition)
+            type: (type_identifier) @type_id (#eq? @type_id "AnyFunSpec"))
+        ) @object.definition
     ]]
 
     return position.get_containing_object(path, child_range, query)
@@ -128,11 +129,7 @@ function M.build_position_id(position, parents)
 
     local position_name = M.get_position_name(position)
 
-    -- print("position_name: " .. position_name)
-    -- print("type is " .. type)
-
     if type == "namespace" then
-        print("it's a namespace")
         -- print("it's a namespace")
         -- if we're given a namespace, and it has no parents
         -- then we want to prefix the id with the package name
@@ -173,12 +170,8 @@ function M.build_position_id(position, parents)
             "."
         )
 
-        print("value is... " .. value)
-
         -- FIXME: this is a poor name for this variable
         local updated_value = value .. "." .. position_name
-
-        print("updated_value is... " .. updated_value)
 
         return updated_value
     else
@@ -201,6 +194,7 @@ end
 ---@param tree neotest.Tree
 ---@return neotestscala.ParsedPosition
 function M.parse_tree(tree)
+    print("#parse_tree")
     local type = tree:data().type
 
     if type == "file" then
@@ -237,6 +231,20 @@ function M.parse_tree(tree)
         -- basically, the ZIODefaultSpec in which the Test Suite lives
         local containing_object = M.get_container_object(tree:data().path, tree:data().range)
         local test_framework = M.get_test_framework_name(tree:data().path)
+
+        local parent = tree:parent()
+
+        local parent_names = {}
+        -- recursively get the names of the parents
+        while parent do
+            -- print("Parent is... " .. vim.inspect(parent:data().type))
+            if parent:data().type == "namespace" then
+                table.insert(parent_names, M.get_position_name(parent:data()))
+            end
+            parent = parent:parent()
+        end
+
+        print("Parent names are... " .. vim.inspect(parent_names))
 
         --@type neotestscala.ParsedTest
         local position = {
@@ -277,9 +285,11 @@ function M.parse_tree(tree)
     end
 
     if type == "namespace" then
+        print("it's a namespace")
         -- in ZIO Test a namespace is a Test Suite
         -- and we'll tell the Test Runner to run the entire suite
         -- so, we'll just want to return the ID of the Namespace itself
+        -- print("position is... " .. vim.inspect(tree:data()))
 
         local package_name = position.get_package_name(tree:data().path)
         -- we need to find the "containing" object of the test suite
@@ -287,6 +297,24 @@ function M.parse_tree(tree)
         local containing_object = M.get_container_object(tree:data().path, tree:data().range)
         -- TODO: we should probably check if the containing object is nil here
         local test_framework = M.get_test_framework_name(tree:data().path)
+
+        -- print("containing_object is... " .. vim.inspect(containing_object))
+        local parent = tree:parent()
+
+        print("Hmmmm")
+
+        local parent_names = {}
+        table.insert(parent_names, M.get_position_name(tree:data()))
+        -- recursively get the names of the parents
+        while parent do
+            print("Parent is... " .. vim.inspect(parent:data().type))
+            if parent:data().type == "namespace" then
+                table.insert(parent_names, M.get_position_name(parent:data()))
+            end
+            parent = parent:parent()
+        end
+
+        print("Parent names are... " .. vim.inspect(parent_names))
 
         if containing_object then
             local containing_object_name = containing_object.name
@@ -307,10 +335,6 @@ function M.parse_tree(tree)
                 test_framework = test_framework,
             }
         else
-            -- local position = {
-            --     name = M.get_position_name(tree:data()),
-            --     id = tree:data().id,
-            -- }
             --@type neotestscala.ParsedPosition
             return {
                 type = type,
@@ -379,6 +403,11 @@ function M.find_runnable_specs(path)
             name: (identifier) @object.name
             extend: (extends_clause
             type: (stable_type_identifier))) @object.definition
+            
+        (class_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (type_identifier))) @object.definition
     ]]
 
     local object_names = {}
@@ -425,6 +454,12 @@ function M.get_test_framework_name(fpath)
                 (identifier)
                 (type_identifier) @type.id))
         )
+    
+        (class_definition
+            name: (identifier)
+            extend: (extends_clause
+            type: (type_identifier) @type.id)
+        )
     ]]
 
     local query_obj = ts.query.parse("scala", query)
@@ -440,6 +475,12 @@ function M.get_test_framework_name(fpath)
                 -- test if object_name contains the text "ZIODefaultSpec"
                 if string.find(object_name, "ZIOSpecDefault") then
                     return types.TEST_FRAMEWORKS.ZIO_TEST
+                end
+                if string.find(object_name, "AnyFunSuite") then
+                    return types.TEST_FRAMEWORKS.SCALATEST
+                end
+                if string.find(object_name, "AnyFunSpec") then
+                    return types.TEST_FRAMEWORKS.SCALATEST
                 end
                 if string.find(object_name, "FunSuite") then
                     return types.TEST_FRAMEWORKS.MUNIT

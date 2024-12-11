@@ -283,9 +283,11 @@ end
 
 function M.build_position(file_path, source, captured_nodes)
     local match_type = get_match_type(captured_nodes)
+
     if not match_type then
         return
     end
+
     local name = vim.treesitter.get_node_text(captured_nodes[match_type .. ".name"], source)
     local definition = captured_nodes[match_type .. ".definition"]
 

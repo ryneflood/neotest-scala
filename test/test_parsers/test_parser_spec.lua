@@ -44,12 +44,12 @@ local zio_test_spec = [[
             suite("Foo")(
                 test("Foo Bar") {
                     assertTrue(Hello.msg == "Hello World, from Bar")
-                },
-                test("Bar Foo") {
-                    assertTrue(Hello.msg == "Hello World, from Bar")
-                }
-            )
-            
+            },
+            test("Bar Foo") {
+                assertTrue(Hello.msg == "Hello World, from Bar")
+            }
+        )
+
     object BarSpec extends zio.test.ZIOSpecDefault:
         def spec =
             suite("Bar")(
@@ -88,6 +88,11 @@ local scalatest_fun_spec = [[
             describe("Bar Suite") {
                 it("Baz") {
                     assert(true == true)
+                }
+                describe("Nested Suite") {
+                    it("Oof") {
+                        assert(true == true)
+                    }
                 }
             }
             it("Foo") {
@@ -163,6 +168,7 @@ describe("Test Parser", function()
 
             async.it("should find the Test Suite + Test in a file (AnyFunSuite)", function()
                 local expected = {
+                    "foo.bar.FooSuite",
                     "foo.bar.FooSuite.Baz",
                     "foo.bar.FooSuite.Foo",
                     "foo.bar.FooSuite.Bar",
@@ -174,6 +180,76 @@ describe("Test Parser", function()
     end)
 
     describe("parse_tree", function()
+        describe("scalatest", function()
+            async.it("should be able to parse a File and find the Suites (AnyFunSuite)", function()
+                local fpath = vim.fn.tempname() .. ".scala"
+                files.write(fpath, scalatest_fun_suite)
+
+                local tree = test_parser.discover_positions(fpath)
+                local test_position = position.get_position_by_name(tree, "0.scala")
+
+                local result = test_parser.parse_tree(test_position)
+
+                local expected = {
+                    type = "file",
+                    only = {
+                        "foo.bar.FooSuite",
+                    },
+                    positions = {},
+                    test_framework = types.TEST_FRAMEWORKS.SCALATEST,
+                }
+
+                assert.is_same(expected, result)
+            end)
+
+            async.it("should be able to parse a File and find the Suites (AnyFunSpec)", function()
+                local fpath = vim.fn.tempname() .. ".scala"
+                files.write(fpath, scalatest_fun_spec)
+
+                local tree = test_parser.discover_positions(fpath)
+                local test_position = position.get_position_by_name(tree, "0.scala")
+
+                local result = test_parser.parse_tree(test_position)
+
+                local expected = {
+                    type = "file",
+                    only = {
+                        "foo.bar.FooSuite",
+                    },
+                    positions = {},
+                    test_framework = types.TEST_FRAMEWORKS.SCALATEST,
+                }
+
+                assert.is_same(expected, result)
+            end)
+
+            async.it("should be able to parse a Namespace and return the Test Suite (AnyFunSpec)", function()
+                local fpath = vim.fn.tempname() .. ".scala"
+                files.write(fpath, scalatest_fun_spec)
+
+                local positions = test_parser.discover_positions(fpath)
+                local test_position = position.find_position(positions, "foo.bar.FooSuite.Foo Suite.Bar Suite")
+
+                local result = test_parser.parse_tree(test_position)
+
+                local expected = {
+                    type = "namespace",
+                    only = {
+                        "foo.bar.FooSuite",
+                    },
+                    positions = {
+                        {
+                            id = "foo.bar.FooSuite.Foo Suite.Bar Suite",
+                            name = "Bar Suite",
+                        },
+                    },
+                    test_framework = types.TEST_FRAMEWORKS.SCALATEST,
+                }
+
+                assert.is_same(expected, result)
+            end)
+        end)
+
         describe("munit", function()
             async.it("should be able to parse a File and find the FunSuites", function()
                 local fpath = vim.fn.tempname() .. ".scala"
