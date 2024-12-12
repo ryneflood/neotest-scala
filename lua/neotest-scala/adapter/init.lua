@@ -165,7 +165,9 @@ return function(config)
                 scala_runner = get_scala_runner()
             end
 
-            local command = test_command_builder.build_command(scala_runner, project, "scala-cli", parsed_position)
+            local test_runner = "bloop"
+
+            local command = test_command_builder.build_command(scala_runner, project, test_runner, parsed_position)
 
             print("COMMAND", command)
 

@@ -79,4 +79,12 @@ function M.make_test_resources_path(file_path)
     return file_path_obj:absolute()
 end
 
+function M.reverseList(list)
+    local reversed = {}
+    for i = #list, 1, -1 do
+        table.insert(reversed, list[i])
+    end
+    return reversed
+end
+
 return M

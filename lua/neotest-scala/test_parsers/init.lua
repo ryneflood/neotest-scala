@@ -194,7 +194,6 @@ end
 ---@param tree neotest.Tree
 ---@return neotestscala.ParsedPosition
 function M.parse_tree(tree)
-    print("#parse_tree")
     local type = tree:data().type
 
     if type == "file" then
@@ -263,6 +262,7 @@ function M.parse_tree(tree)
                     position,
                 },
                 test_framework = test_framework,
+                chain = parent_names,
             }
         else
             local test_suites = M.find_runnable_specs(tree:data().path)
@@ -280,6 +280,7 @@ function M.parse_tree(tree)
                     },
                 },
                 test_framework = test_framework,
+                chain = parent_names,
             }
         end
     end
@@ -333,6 +334,7 @@ function M.parse_tree(tree)
                     position,
                 },
                 test_framework = test_framework,
+                chain = parent_names,
             }
         else
             --@type neotestscala.ParsedPosition
@@ -343,6 +345,7 @@ function M.parse_tree(tree)
                 },
                 positions = {},
                 test_framework = test_framework,
+                chain = parent_names,
             }
         end
     end

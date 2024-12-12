@@ -244,6 +244,29 @@ describe("Test Parser", function()
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
+                    chain = { "Bar Suite", "Foo Suite" },
+                }
+
+                assert.is_same(expected, result)
+            end)
+
+            async.it("should be able to parse a Namespace and return the Test Suite (AnyFunSuite)", function()
+                local fpath = vim.fn.tempname() .. ".scala"
+                files.write(fpath, scalatest_fun_suite)
+
+                local positions = test_parser.discover_positions(fpath)
+                local test_position = position.find_position(positions, "foo.bar.FooSuite")
+
+                local result = test_parser.parse_tree(test_position)
+
+                local expected = {
+                    type = "namespace",
+                    only = {
+                        "foo.bar.FooSuite",
+                    },
+                    positions = {},
+                    test_framework = types.TEST_FRAMEWORKS.SCALATEST,
+                    chain = { "FooSuite" },
                 }
 
                 assert.is_same(expected, result)
@@ -288,6 +311,7 @@ describe("Test Parser", function()
                     },
                     positions = {},
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
+                    chain = { "FooSuite" },
                 }
 
                 assert.is_same(expected, result)
@@ -314,6 +338,7 @@ describe("Test Parser", function()
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
+                    chain = { "FooSuite" },
                 }
 
                 assert.is_same(expected, result)
@@ -364,6 +389,7 @@ describe("Test Parser", function()
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
+                    chain = { "Foo" },
                 }
 
                 assert.is_same(expected, result)
@@ -390,6 +416,7 @@ describe("Test Parser", function()
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
+                    chain = { "Foo" },
                 }
 
                 assert.is_same(expected, result)

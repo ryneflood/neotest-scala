@@ -1,5 +1,6 @@
 require("setup_test_environment")
 
+local types = require("neotest-scala.types")
 local async = require("nio").tests
 local command_builder = require("neotest-scala.command_builders.bloop_test_command_builder")
 
@@ -81,6 +82,31 @@ describe("Bloop Test Command Builder", function()
             }
 
             local result = command_builder.build_command("scala-runner", "foo.test", "munit", parsed_position)
+
+            assert.is_same(expected, result)
+        end)
+
+        async.it("should prepare a test runner command for a single test (Scalatest)", function()
+            -- for scalatest, we need to pass the test name separated by spaces
+            -- so, it should look something like:
+            -- --only foo.bar.FooSuite --test "Foo Suite Bar Suite Baz"
+            local expected =
+                'scala-runner --runner bloop --project foo.test --framework scalatest --only foo.bar.FooSuite --test "Foo Suite Bar Suite Baz" --to /tmp'
+
+            local parsed_position = {
+                type = "test",
+                only = { "foo.bar.FooSuite" },
+                positions = {
+                    {
+                        id = "foo.bar.FooSuite.Foo Suite.Bar Suite.Baz",
+                        name = "Baz",
+                    },
+                },
+                chain = { "Bar Suite", "Foo Suite" },
+                test_framework = types.TEST_FRAMEWORKS.SCALATEST,
+            }
+
+            local result = command_builder.build_command("scala-runner", "foo.test", "bloop", parsed_position)
 
             assert.is_same(expected, result)
         end)

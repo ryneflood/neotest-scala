@@ -1,4 +1,5 @@
 local types = require("neotest-scala.types")
+local utils = require("neotest-scala.utils")
 
 local M = {}
 
@@ -6,6 +7,7 @@ local M = {}
 ---@param test_framework string
 ---@param parsed_position neotestscala.ParsedPosition
 function M.build_command(runner_path, project, build_tool, parsed_position)
+    print("build_tool", build_tool)
     local only = {}
     local tests = {}
 
@@ -25,11 +27,14 @@ function M.build_command(runner_path, project, build_tool, parsed_position)
     elseif parsed_position.test_framework == types.TEST_FRAMEWORKS.SCALATEST then
         -- bloop test baz.test -o foo.bar.FooSuite -- -z "Foo Suite Bar Suite"
         -- we want a test command like ^^
-        --
-        -- for _, position in ipairs(parsed_position.positions) do
-        --     table.insert(tests, "--test")
-        --     -- surround the position in quotes
-        --     table.insert(tests, '"' .. position.name .. '"')
+        local reversed = utils.reverseList(parsed_position.chain)
+        local c = table.concat(reversed, " ")
+
+        local position = parsed_position.positions[1]
+        table.insert(tests, "--test")
+        -- surround the position in quotes
+        local chain = c .. " " .. position.name
+        table.insert(tests, '"' .. chain .. '"')
         -- end
     else
         for _, position in ipairs(parsed_position.positions) do

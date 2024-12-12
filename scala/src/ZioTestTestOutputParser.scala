@@ -1,12 +1,12 @@
 package neotest
 
-enum Step(val index: Int, val line: String):
-  case Increment(override val index: Int, override val line: String)
-      extends Step(index, line)
-  case Decrement(override val index: Int, override val line: String)
-      extends Step(index, line)
-  case NoChange(override val index: Int, override val line: String)
-      extends Step(index, line)
+enum Step(val index: Int, val line: String, val name: String):
+  case Increment(override val index: Int, override val line: String, override val name: String = "")
+      extends Step(index, line, name)
+  case Decrement(override val index: Int, override val line: String, override val name: String = "", val indentationChange: Integer = 1)
+      extends Step(index, line, name)
+  case NoChange(override val index: Int, override val line: String, override val name: String = "")
+      extends Step(index, line, name)
 
 object ZioTestTestOutputParser extends TestOutputParser:
   def parseTestOutput(testSuiteName: String) =
@@ -93,18 +93,6 @@ object ZioTestTestOutputParser extends TestOutputParser:
   ): List[TestSuite] =
     suites.map(parseTestSuite(testSuiteName, _))
 
-  final case class Context(
-      previousTestLocation: Option[Int],
-      currentLine: Int,
-      currentPosition: List[String],
-      currentTestHierarchy: ContextSuite,
-      globalTestHierarchy: List[ContextSuite]
-  )
-
-  final case class ContextSuite(
-      tests: List[TestResultWithOutput]
-  )
-
   private def findTestPositions(lines: List[String]): List[Step] =
     def loop(
         lines: List[String],
@@ -154,12 +142,12 @@ object ZioTestTestOutputParser extends TestOutputParser:
       (currentStep, nextStep) match
         case (Some(current), Some(next)) =>
           next match
-            case Step.Increment(_, line) =>
+            case Step.Increment(_, line, _) =>
               val testName = stripColorCodes(current.line).trim.drop(2)
               val updatedContext = testName :: context
 
               loop(index + 1, steps, updatedContext, testNames)
-            case Step.Decrement(_, line) =>
+            case Step.Decrement(_, line, _, indentationChange) =>
               val updatedTestNames = if isFailedTest(current.line).isDefined then
                 val currentIndentation = current.line.takeWhile(_ == ' ').length
 
@@ -195,7 +183,7 @@ object ZioTestTestOutputParser extends TestOutputParser:
               val updatedContext = context.tail
 
               loop(index + 1, steps, updatedContext, updatedTestNames)
-            case Step.NoChange(_, line) =>
+            case Step.NoChange(_, line, _) =>
               val updatedTestNames = 
                 if isFailedTest(current.line).isDefined then
                   val currentIndentation = current.line.takeWhile(_ == ' ').length

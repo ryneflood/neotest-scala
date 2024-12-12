@@ -18,7 +18,7 @@ trait TestRunnerAdapter:
 
 final case class BloopRunnerAdapter() extends TestRunnerAdapter:
   def runTests(options: Options): Task[List[TestSuite]] =
-      val singleTestCommand = if options.framework == "zio-test" then
+      val singleTestCommand = if options.framework == "zio-test" || options.framework == "scalatest" then
         options.test match
           case Some(test) => List("--", "-t", test)
           case None       => List.empty
@@ -38,6 +38,8 @@ final case class BloopRunnerAdapter() extends TestRunnerAdapter:
             options.project
           ) ::: testSuitesSubcommand ::: singleTestCommand
 
+          println(command.mkString(" "))
+
           val commandResult: os.CommandResult = os
             .proc(command)
             .call(check = false)
@@ -45,6 +47,8 @@ final case class BloopRunnerAdapter() extends TestRunnerAdapter:
           val output = commandResult.exitCode match
             case 0 | 32 => commandResult.out.lines().toList
             case _      => throw Throwable(commandResult.err.text())
+
+          println("Output: " + output)
 
           val testOutputParser = if options.framework == "zio-test" then
             ZioTestTestOutputParser.parseTestOutput(options.testSuites.head)
