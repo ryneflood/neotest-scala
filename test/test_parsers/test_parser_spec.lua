@@ -285,7 +285,6 @@ describe("Test Parser", function()
                     },
                     positions = {},
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
-                    -- chain = { "FooSuite" },
                 }
 
                 assert.is_same(expected, result)

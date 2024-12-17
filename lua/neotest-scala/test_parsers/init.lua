@@ -1,10 +1,7 @@
-local zio_test_parser = require("neotest-scala.test_parsers.ziotest_test_parser")
-local munit_parser = require("neotest-scala.test_parsers.munit_test_parser")
 local lib = require("neotest.lib")
 local position = require("neotest-scala.position")
 local types = require("neotest-scala.types")
 local utils = require("neotest-scala.utils")
-local func_util = require("neotest.lib.func_util")
 
 local M = {}
 
@@ -45,16 +42,6 @@ local query = [[;;query
         arguments: (arguments (string) @namespace.name))
     )) @namespace.definition
 ]]
-
-function M.get_test_parser(test_framework)
-    if test_framework == types.TEST_FRAMEWORKS.ZIO_TEST then
-        return zio_test_parser
-    elseif test_framework == types.TEST_FRAMEWORKS.MUNIT then
-        return munit_parser
-    else
-        error("unsupported test framework: " .. test_framework)
-    end
-end
 
 function M.get_package_name(path)
     local file_content = lib.files.read(path)
