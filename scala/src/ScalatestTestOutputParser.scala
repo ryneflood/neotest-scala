@@ -10,50 +10,83 @@ package neotest
   * test suites passed.
   * ===============================================
   */
+object ScalatestXmlTestOutputParser extends TestOutputParser:
+  def loadAndParseXmlFiles(testSuiteName: String) =
+    // load the XML files from /tmp/scalatest-out and process them one-by-one
+    // val xmlFiles = os.list(os.root / "tmp" / "scalatest-out").toList
+
+    var xmlFiles = List.empty[os.Path]
+
+    // loop until we find the XML files
+    while xmlFiles.isEmpty do
+      Thread.sleep(10)
+      xmlFiles = os.list(os.root / "tmp" / "scalatest-out").toList
+
+    xmlFiles
+      .map(file => parseTestOutput(testSuiteName)(os.read.lines(file).toList))
+      .flatten
+
+  def parseTestOutput(testSuiteName: String) =
+    (lines: List[String]) => parseTestSuite(testSuiteName)(lines)
+
+  def parseTestSuite(suiteName: String)(output: List[String]) =
+    // parse output as an XML document
+    val xml = scala.xml.XML.loadString(output.mkString("\n"))
+
+    val root = xml.head
+
+    val testCases = root \ "testcase"
+
+    val suiteName = root.attribute("name").get.text
+
+    val tests = testCases.map { testCase =>
+      val name = testCase.attribute("name").get.text
+      val failure = (testCase \ "failure").headOption
+
+      if failure.isEmpty then
+        TestResultWithOutput.Passed(s"${suiteName}.${name}")
+      else
+        val message = failure.get.attribute("message").get.text
+
+        TestResultWithOutput.Failed(s"${suiteName}.${name}", List(message))
+    }.toList
+
+    List(TestSuite(suiteName, tests))
+
 object ScalatestTestOutputParser extends TestOutputParser:
-  def parseTestOutput(
-      x: String
+  def parseTestOutput(suiteName: String) =
+    (output: List[String]) =>
+      // find the locations of the test suites
+      // val testSuiteLocations = identifyTestSuiteLocations(output)
+      // split the output into separate test suites
+      // val testSuites = splitSuites(output.drop(1))
+
+      // println("testSuites: " + testSuites)
+
+      // parse each test suite
+      // val parsedTestSuites = testSuites.map(parseSingleTestSuite(suiteName))
+
+      // parsedTestSuites.flatten
+      List.empty
+
+  def parseSingleTestSuite(
+      testClassName: String
   ): List[String] => List[TestSuite] =
     (output: List[String]) =>
-      val testClassNames = output
-        .flatMap(identifyTestClass)
+      val steps = findTestLocations(output)
+      val parsedSuite = parseSteps(output, steps)
 
-      println("testClasses")
-      println(testClassNames)
-
-      val testClassName = testClassNames.head
-
-      val testSuiteNames = output
-        .flatMap(identifyTestSuite)
-
-      val testSuiteName = testSuiteNames.head
-
-      val testNames = output
-        .flatMap(identifyTest)
-        .map(testName =>
-          TestResultWithOutput.Passed(
-            s"$testClassName.$testSuiteName.$testName"
-          )
-        )
-
-      List(
-        TestSuite(
-          testClassName,
-          testNames
-        )
-      )
-  private[neotest] def parseSuite(lines: List[String]): TestSuite =
-    ???
+      List(parsedSuite)
 
   private def isTestSuite(line: String) =
-    val testSuiteRegex = """\s?+\\[32m(.*)\\[0m""".r
+    val testSuiteRegex = """\s?+\\[3[1|2]m(.*)\\[0m""".r
 
     line match
       case testSuiteRegex(suiteName) => Some(suiteName.trim)
       case _                         => None
 
-  private def isPassedTest(line: String): Option[String] =
-    val passedTestRegex = """\\[32m\s{0,}-\s(.*)\\[0m""".r
+  private def isTestCase(line: String): Option[String] =
+    val passedTestRegex = """\\[3[1|2]m\s{0,}-\s(.*)\\[0m""".r
 
     line match
       case passedTestRegex(testName) => Some(testName.trim)
@@ -68,8 +101,9 @@ object ScalatestTestOutputParser extends TestOutputParser:
         index: Integer
     ) = {
       val previousStep = steps.lastOption
+
       val indentationChange = previousStep match
-        case None => Step.NoChange(index, name)
+        case None => Step.NoChange(index, line, name)
         case Some(step) =>
           val currentLineWithoutColorCodes = stripColorCodes(line)
           val previousLineWithoutColorCodes = stripColorCodes(step.line)
@@ -80,14 +114,12 @@ object ScalatestTestOutputParser extends TestOutputParser:
             previousLineWithoutColorCodes.takeWhile(_ == ' ').length
 
           if currentIndentation > previousIndentation then
-            Step.Increment(index, currentLineWithoutColorCodes, name)
+            Step.Increment(index, line, name)
           else if currentIndentation < previousIndentation then
-            Step.Decrement(index, currentLineWithoutColorCodes, name)
-          else Step.NoChange(index, currentLineWithoutColorCodes, name)
+            Step.Decrement(index, line, name)
+          else Step.NoChange(index, line, name)
 
-      val updatedSteps = steps.appended(indentationChange)
-
-      loop(lines, index + 1, updatedSteps)
+      steps.appended(indentationChange)
     }
 
     def loop(
@@ -100,13 +132,38 @@ object ScalatestTestOutputParser extends TestOutputParser:
         // if this is the line we're interested in, then we'll add it to the Steps we've collected so far
         val currentLine = lines(index)
 
-        val tuple = (isPassedTest(currentLine), isTestSuite(currentLine))
+        val tuple = (isTestCase(currentLine), isTestSuite(currentLine))
 
         tuple match
           case (Some(testName), _) =>
-            doStuff(testName, currentLine, lines, steps, index)
+            val updatedSteps =
+              doStuff(testName, currentLine, lines, steps, index)
+
+            val currentIndentation = currentLine.takeWhile(_ == ' ').length
+
+            def indentationIsLessThanCurrentLine(line: String) =
+              line.takeWhile(_ == ' ').length < currentIndentation
+
+            val nextIndex =
+              // start at the current line
+              lines
+                .drop(index + 1)
+                .zipWithIndex
+                .find { case (line, _) =>
+                  isTestCase(
+                    line
+                  ).isDefined || indentationIsLessThanCurrentLine(line)
+                }
+                .map(_._2)
+                .map(_ + index + 1)
+                .getOrElse(lines.length)
+
+            loop(lines, nextIndex, updatedSteps)
           case (_, Some(suiteName)) =>
-            doStuff(suiteName, currentLine, lines, steps, index)
+            val updatedSteps =
+              doStuff(suiteName, currentLine, lines, steps, index)
+
+            loop(lines, index + 1, updatedSteps)
           case _ => loop(lines, index + 1, steps)
 
     loop(output, 0, List.empty)
@@ -121,6 +178,7 @@ object ScalatestTestOutputParser extends TestOutputParser:
       steps: List[Step]
   ): TestSuite =
     steps.zipWithIndex
+      // FIXME: obviously don't hard code "FooSuite" in there
       .foldLeft(Context(List.empty, TestSuite("FooSuite", List.empty))) {
         (acc, curr) =>
           // if we have a NoChange --> Increment then we're describing a parent --> child relationship
@@ -145,7 +203,8 @@ object ScalatestTestOutputParser extends TestOutputParser:
                 ) =>
               // remove the last element from the stack
               val updatedStack = acc.stack.dropRight(indentationChange)
-              val testName = updatedStack.mkString(".") + "." + name
+              val testName = updatedStack
+                .mkString(".") + "." + name.replace("*** FAILED ***", "").trim
 
               val test =
                 if line.startsWith("\u001B[31m") then
@@ -183,7 +242,8 @@ object ScalatestTestOutputParser extends TestOutputParser:
                 )
               else
                 // find out whether the test failed or password
-                val testName = acc.stack.mkString(".") + "." + name
+                val testName = acc.stack
+                  .mkString(".") + "." + name.replace("*** FAILED ***", "").trim
 
                 val test =
                   if line.startsWith("\u001B[31m") then
@@ -213,14 +273,14 @@ object ScalatestTestOutputParser extends TestOutputParser:
       }
       .testSuite
 
-  private def identifyTestSuite(line: String): Option[String] =
+  private[neotest] def identifyTestSuite(line: String): Option[String] =
     val testSuiteRegex = """\s?+\\[32m(.*)\\[0m""".r
 
     line match
       case testSuiteRegex(suiteName) => Some(suiteName)
       case _                         => None
 
-  private def identifyTestClass(line: String): Option[String] =
+  private[neotest] def identifyTestClass(line: String): Option[String] =
     val testRegex = """\s?+\\[32m(.*):\\[0m""".r
 
     line match
@@ -236,3 +296,42 @@ object ScalatestTestOutputParser extends TestOutputParser:
 
   private[neotest] def stripColorCodes(line: String): String =
     line.replaceAll("\u001B\\[[;\\d]*m", "")
+
+  private[neotest] def splitSuites(lines: List[String]) =
+    val testSuiteLocations = identifyTestSuiteLocations(lines)
+    val testSuiteIndexes = testSuiteLocations.map(_.index)
+
+    // split the input at the specified indexes
+    val testSuites =
+      testSuiteIndexes
+        .grouped(2)
+        .foldLeft(List.empty[List[String]])((acc, curr) =>
+          curr match
+            case List(start, end) =>
+              val suite = lines.slice(start, end)
+
+              acc.appended(suite)
+            case _ => acc
+        )
+
+    // take the rest of the lines
+    val suite = lines.slice(testSuiteIndexes.last, lines.length)
+
+    val x = testSuites.appended(suite)
+
+    x
+
+  private[neotest] def identifyTestSuiteLocations(lines: List[String]) =
+    lines.zipWithIndex
+      .foldLeft(List.empty[Step])((acc, curr) =>
+        val (line, index) = curr
+        // check if this line is a top-level test suite
+        // basically, if it's not indented and it's green or red text then it should be a test suite
+        val testSuiteRegex = """^\\[3[1|2]m(.*)\\[0m""".r
+
+        line match
+          case testSuiteRegex(suiteName)
+              if !suiteName.startsWith(" ") && !suiteName.startsWith("-") =>
+            acc.appended(Step.NoChange(index, line, suiteName))
+          case _ => acc
+      )

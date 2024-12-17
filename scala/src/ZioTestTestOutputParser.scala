@@ -167,7 +167,7 @@ object ZioTestTestOutputParser extends TestOutputParser:
                 val testName = stripColorCodes(current.line).trim.drop(2)
                 testNames.appended(
                   TestResultWithOutput.Failed(
-                    testSuiteName + "." + context.reverse.mkString(".") + "." + testName,
+                    testSuiteName + "." + context.reverse.mkString(" ") + " " + testName,
                     testOutput
                   )
                 )
@@ -176,7 +176,7 @@ object ZioTestTestOutputParser extends TestOutputParser:
 
                   testNames.appended(
                     TestResultWithOutput.Passed(
-                      testSuiteName + "." + context.reverse.mkString(".") + "." + testName
+                      testSuiteName + "." + context.reverse.mkString(" ") + " " + testName
                     )
                   )
 
@@ -205,7 +205,7 @@ object ZioTestTestOutputParser extends TestOutputParser:
                   val testName = stripColorCodes(current.line).trim.drop(2)
                     testNames.appended(
                       TestResultWithOutput.Failed(
-                        testSuiteName + "."  + context.reverse.mkString(".") + "." + testName,
+                        testSuiteName + "."  + context.reverse.mkString(" ") + " " + testName,
                         testOutput
                       )
                     )
@@ -213,7 +213,7 @@ object ZioTestTestOutputParser extends TestOutputParser:
                   val testName = stripColorCodes(current.line).trim.drop(2)
                     testNames.appended(
                       TestResultWithOutput.Passed(
-                        testSuiteName + "." + context.reverse.mkString(".") + "." + testName
+                        testSuiteName + "." + context.reverse.mkString(" ") + " " + testName
                       )
                     )
 
@@ -239,7 +239,7 @@ object ZioTestTestOutputParser extends TestOutputParser:
               val testName = stripColorCodes(current.line).trim.drop(2)
                 testNames.appended(
                   TestResultWithOutput.Failed(
-                    testSuiteName + "." + context.reverse.mkString(".") + "." + testName,
+                    testSuiteName + "." + context.reverse.mkString(" ") + " " + testName,
                     testOutput
                   )
                 )
@@ -247,7 +247,7 @@ object ZioTestTestOutputParser extends TestOutputParser:
               val testName = stripColorCodes(current.line).trim.drop(2)
                 testNames.appended(
                   TestResultWithOutput.Passed(
-                    testSuiteName + "." + context.reverse.mkString(".") + "." + testName
+                    testSuiteName + "." + context.reverse.mkString(" ") + " " + testName
                   )
                 )
 

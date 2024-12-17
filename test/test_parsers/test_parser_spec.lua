@@ -6,6 +6,28 @@ local position = require("neotest-scala.position")
 local types = require("neotest-scala.types")
 local test_parser = require("neotest-scala.test_parsers")
 
+local function print_position_ids(pos_id, position_ids)
+    local message = {}
+    table.insert(message, "Position not found in positions: ")
+
+    table.insert(message, "Pos_id: " .. pos_id)
+
+    for _, id in ipairs(position_ids) do
+        table.insert(message, id)
+    end
+
+    local value = table.concat(
+        vim.iter({
+            message,
+        })
+            :flatten()
+            :totable(),
+        "\n"
+    )
+
+    return value
+end
+
 local function assert_has_position(tree, pos_id)
     local position_ids = {}
 
@@ -15,10 +37,7 @@ local function assert_has_position(tree, pos_id)
         table.insert(position_ids, data.id)
     end
 
-    assert(
-        position.has_position(tree, pos_id),
-        "Position " .. pos_id .. " not found in positions: " .. vim.inspect(position_ids)
-    )
+    assert(position.has_position(tree, pos_id), print_position_ids(pos_id, position_ids))
 end
 
 local function assert_has_positions(spec, pos_ids)
@@ -129,10 +148,10 @@ describe("Test Parser", function()
             async.it("should find the Test Suite + Test in a file (zio-test)", function()
                 local expected = {
                     "bar.FooSpec.Foo", -- this is the Suite
-                    "bar.FooSpec.Foo.Foo Bar", -- this is the Test
-                    "bar.FooSpec.Foo.Bar Foo", -- this is the Test
+                    "bar.FooSpec.Foo Foo Bar", -- this is the Test
+                    "bar.FooSpec.Foo Bar Foo", -- this is the Test
                     "bar.BarSpec.Bar", -- this is the Suite
-                    "bar.BarSpec.Bar.Test But Not a Suite", -- this is the Test
+                    "bar.BarSpec.Bar Test But Not a Suite", -- this is the Test
                 }
 
                 assert_has_positions(zio_test_spec, expected)
@@ -143,10 +162,10 @@ describe("Test Parser", function()
             async.it("should find the Test Suite + Test in a file (munit)", function()
                 local expected = {
                     "foo.bar.FooSuite", -- this is the Suite
-                    "foo.bar.FooSuite.Foo.Bar", -- this is a test
-                    "foo.bar.FooSuite.Foo Bar", -- this is a test
-                    "foo.bar.FooSuite.Bar Foo", -- this is a test
-                    "foo.bar.FooSuite.Foo Baz", -- this is a test
+                    "foo.bar.FooSuite Foo.Bar", -- this is a test
+                    "foo.bar.FooSuite Foo Bar", -- this is a test
+                    "foo.bar.FooSuite Bar Foo", -- this is a test
+                    "foo.bar.FooSuite Foo Baz", -- this is a test
                 }
 
                 assert_has_positions(munit_spec, expected)
@@ -157,10 +176,10 @@ describe("Test Parser", function()
             async.it("should find the Test Suite + Test in a file (AnyFunSpec)", function()
                 local expected = {
                     "foo.bar.FooSuite.Foo Suite",
-                    "foo.bar.FooSuite.Foo Suite.Bar Suite",
-                    "foo.bar.FooSuite.Foo Suite.Bar Suite.Baz",
-                    "foo.bar.FooSuite.Foo Suite.Foo",
-                    "foo.bar.FooSuite.Foo Suite.Bar",
+                    "foo.bar.FooSuite.Foo Suite Bar Suite",
+                    "foo.bar.FooSuite.Foo Suite Bar Suite Baz",
+                    "foo.bar.FooSuite.Foo Suite Foo",
+                    "foo.bar.FooSuite.Foo Suite Bar",
                 }
 
                 assert_has_positions(scalatest_fun_spec, expected)
@@ -169,9 +188,9 @@ describe("Test Parser", function()
             async.it("should find the Test Suite + Test in a file (AnyFunSuite)", function()
                 local expected = {
                     "foo.bar.FooSuite",
-                    "foo.bar.FooSuite.Baz",
-                    "foo.bar.FooSuite.Foo",
-                    "foo.bar.FooSuite.Bar",
+                    "foo.bar.FooSuite Baz",
+                    "foo.bar.FooSuite Foo",
+                    "foo.bar.FooSuite Bar",
                 }
 
                 assert_has_positions(scalatest_fun_suite, expected)
@@ -228,7 +247,7 @@ describe("Test Parser", function()
                 files.write(fpath, scalatest_fun_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "foo.bar.FooSuite.Foo Suite.Bar Suite")
+                local test_position = position.find_position(positions, "foo.bar.FooSuite.Foo Suite Bar Suite")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -239,12 +258,12 @@ describe("Test Parser", function()
                     },
                     positions = {
                         {
-                            id = "foo.bar.FooSuite.Foo Suite.Bar Suite",
+                            id = "foo.bar.FooSuite.Foo Suite Bar Suite",
                             name = "Bar Suite",
+                            path = { "Bar Suite", "Foo Suite" },
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
-                    chain = { "Bar Suite", "Foo Suite" },
                 }
 
                 assert.is_same(expected, result)
@@ -266,7 +285,7 @@ describe("Test Parser", function()
                     },
                     positions = {},
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
-                    chain = { "FooSuite" },
+                    -- chain = { "FooSuite" },
                 }
 
                 assert.is_same(expected, result)
@@ -311,7 +330,6 @@ describe("Test Parser", function()
                     },
                     positions = {},
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
-                    chain = { "FooSuite" },
                 }
 
                 assert.is_same(expected, result)
@@ -322,7 +340,7 @@ describe("Test Parser", function()
                 files.write(fpath, munit_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "foo.bar.FooSuite.Bar Foo")
+                local test_position = position.find_position(positions, "foo.bar.FooSuite Bar Foo")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -333,12 +351,12 @@ describe("Test Parser", function()
                     },
                     positions = {
                         {
-                            id = "foo.bar.FooSuite.Bar Foo",
+                            id = "foo.bar.FooSuite Bar Foo",
                             name = "Bar Foo",
+                            path = { "FooSuite" },
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
-                    chain = { "FooSuite" },
                 }
 
                 assert.is_same(expected, result)
@@ -386,10 +404,10 @@ describe("Test Parser", function()
                         {
                             id = "bar.FooSpec.Foo",
                             name = "Foo",
+                            path = { "Foo" },
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
-                    chain = { "Foo" },
                 }
 
                 assert.is_same(expected, result)
@@ -400,7 +418,7 @@ describe("Test Parser", function()
                 files.write(fpath, zio_test_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "bar.FooSpec.Foo.Foo Bar")
+                local test_position = position.find_position(positions, "bar.FooSpec.Foo Foo Bar")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -411,12 +429,12 @@ describe("Test Parser", function()
                     },
                     positions = {
                         {
-                            id = "bar.FooSpec.Foo.Foo Bar",
+                            id = "bar.FooSpec.Foo Foo Bar",
                             name = "Foo Bar",
+                            path = { "Foo" },
                         },
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
-                    chain = { "Foo" },
                 }
 
                 assert.is_same(expected, result)

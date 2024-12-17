@@ -4,3 +4,4 @@
 //> using dep "dev.zio::zio-test:2.1.7"
 //> using dep "dev.zio::zio-json:0.7.3"
 //> using dep "com.lihaoyi::os-lib:0.11.3"
+//> using dep "org.scala-lang.modules::scala-xml:2.3.0"

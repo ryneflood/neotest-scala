@@ -25,8 +25,6 @@ end
 ---@field get_runner fun(python_command: string[]): string
 return function(config)
     local function initialize()
-        print("NEOTEST-SCALA RUNNER")
-
         data["persistent"] = "persistent_data"
 
         -- get the cwd

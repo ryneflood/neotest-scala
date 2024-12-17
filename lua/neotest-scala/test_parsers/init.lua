@@ -134,8 +134,11 @@ function M.build_position_id(position, parents)
         -- if we're given a namespace, and it has no parents
         -- then we want to prefix the id with the package name
         if #parents == 0 then
+            print("No parents...")
             local containing_object = M.get_container_object(position.path, position.range)
             local package_name = M.get_package_name(position.path)
+
+            print("containing_object is... " .. vim.inspect(containing_object))
 
             if containing_object then
                 return package_name .. "." .. containing_object.name .. "." .. position_name
@@ -145,7 +148,9 @@ function M.build_position_id(position, parents)
         else
             local closest_parent = parents[#parents]
 
-            return closest_parent.id .. "." .. position_name
+            print("closest_parent is... ", closest_parent.id)
+
+            return closest_parent.id .. " " .. position_name
         end
     elseif type == "test" then
         -- FIXME: clean this up, right?
@@ -161,17 +166,19 @@ function M.build_position_id(position, parents)
             end
         end
 
+        print("parent_values are... " .. vim.inspect(parent_values))
+
         local value = table.concat(
             vim.iter({
                 parent_values,
             })
                 :flatten()
                 :totable(),
-            "."
+            " "
         )
 
         -- FIXME: this is a poor name for this variable
-        local updated_value = value .. "." .. position_name
+        local updated_value = value .. " " .. position_name
 
         return updated_value
     else
@@ -236,7 +243,6 @@ function M.parse_tree(tree)
         local parent_names = {}
         -- recursively get the names of the parents
         while parent do
-            -- print("Parent is... " .. vim.inspect(parent:data().type))
             if parent:data().type == "namespace" then
                 table.insert(parent_names, M.get_position_name(parent:data()))
             end
@@ -249,6 +255,7 @@ function M.parse_tree(tree)
         local position = {
             name = M.get_position_name(tree:data()),
             id = tree:data().id,
+            path = parent_names,
         }
 
         if containing_object then
@@ -262,7 +269,7 @@ function M.parse_tree(tree)
                     position,
                 },
                 test_framework = test_framework,
-                chain = parent_names,
+                -- path = parent_names,
             }
         else
             local test_suites = M.find_runnable_specs(tree:data().path)
@@ -277,10 +284,10 @@ function M.parse_tree(tree)
                     {
                         id = tree:data().id,
                         name = M.get_position_name(tree:data()),
+                        path = parent_names,
                     },
                 },
                 test_framework = test_framework,
-                chain = parent_names,
             }
         end
     end
@@ -322,6 +329,7 @@ function M.parse_tree(tree)
 
             local position = {
                 name = M.get_position_name(tree:data()),
+                path = parent_names,
                 id = tree:data().id,
             }
             --@type neotestscala.ParsedPosition
@@ -334,7 +342,6 @@ function M.parse_tree(tree)
                     position,
                 },
                 test_framework = test_framework,
-                chain = parent_names,
             }
         else
             --@type neotestscala.ParsedPosition
@@ -345,7 +352,7 @@ function M.parse_tree(tree)
                 },
                 positions = {},
                 test_framework = test_framework,
-                chain = parent_names,
+                -- path = parent_names,
             }
         end
     end

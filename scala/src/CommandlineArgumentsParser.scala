@@ -44,6 +44,10 @@ object CommandlineArgumentsParser:
       value
     }.get
 
+    val kind = arguments.collectFirst { case ("kind", value) =>
+      value
+    }.get
+
     val test = arguments.collectFirst { case ("test", value) =>
       value
     }
@@ -58,5 +62,6 @@ object CommandlineArgumentsParser:
       outputDirectory = os.Path(outputDirectory),
       project = project,
       testSuites = testSuites,
-      test = test
+      test = test,
+      kind = kind
     )
