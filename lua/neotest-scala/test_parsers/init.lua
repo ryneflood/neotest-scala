@@ -113,76 +113,82 @@ end
 ---@return string
 function M.build_position_id(position, parents)
     local type = position.type
-
     local position_name = M.get_position_name(position)
 
     if type == "namespace" then
-        -- print("it's a namespace")
-        -- if we're given a namespace, and it has no parents
-        -- then we want to prefix the id with the package name
+        -- a namespace represents a test suite
+        -- but, since we want to support multiple test frameworks, and they allow you to define
+        -- test suites in different ways, we'll need to handle each case
+        --
+        -- for example, in ZIO Test, a test suite is defined like this:
+        --
+        --  | package bar
+        --  |
+        --  | object FooSpec extends ZIOSpecDefault:
+        --  |     def spec = suite("Foo Suite") <-- the current position is this
+        --  |       ( ... )
+        --
+        -- or, for ScalaTest:
+        --
+        --  | package bar
+        --  |
+        --  | import org.scalatest.funspec.AnyFunSpec
+        --  |
+        --  | class FooSpec extends AnyFunSpec {
+        --  |   describe("Foo Suite"): <-- the current position is this
+        --  |     ...
+        --
+        --  in both of these cases, the fully-qualified path of the test suite is "bar.FooSpec.Foo Suite"
+        --  which is `<package-name>.<object-name>.<test-suite-name>`
+        --  since we aren't matching `object FooSpec` in our treesitter query, what we can do is test whether the matched namespace
+        --  has any parent nodes; if not then it should be the case that we're dealing with a Test Suite
+        --  which has been defined as the child of an Object/Class, so we can ask for the "container" object/class name
+        --  and then construct the fully-qualified path from that: `<package-name>.<object-name>.<test-suite-name>`
+        --
+        --  but, in the case of Munit, a test suite is defined like this:
+        --
+        --  | package bar
+        --  |
+        --  | import foo.Hello
+        --  |
+        --  | class FooSuite extends munit.FunSuite: <-- the current position is here
+        --
+        -- in this case the class name is the test suite name, and there's no "parent" that was matched by the treesitter query
         if #parents == 0 then
-            print("No parents...")
-            local containing_object = M.get_container_object(position.path, position.range)
+            local parent_class = M.get_container_object(position.path, position.range)
             local package_name = M.get_package_name(position.path)
 
-            print("containing_object is... " .. vim.inspect(containing_object))
-
-            if containing_object then
-                return package_name .. "." .. containing_object.name .. "." .. position_name
+            if parent_class then
+                -- we're in a ZIO Test-style test suite, where the test suite is defined as a child of an object
+                return package_name .. "." .. parent_class.name .. "." .. position_name
             else
+                -- we're in a Munit-style test suite, where the test suite is defined as a class
                 return package_name .. "." .. position_name
             end
         else
-            local closest_parent = parents[#parents]
-
-            print("closest_parent is... ", closest_parent.id)
-
-            return closest_parent.id .. " " .. position_name
+            -- we'll also want to support nested test suites
+            -- so, we'll construct the fully-qualified path by taking the closest parent
+            -- and appending the current position name to it
+            -- (the closest parent's ID will have been recursively constructed already)
+            return parents[#parents].id .. " " .. position_name
         end
     elseif type == "test" then
-        -- FIXME: clean this up, right?
-        local parent_values = {}
-
-        for i, parent in ipairs(parents) do
-            if i == 1 then
-                table.insert(parent_values, parent.id)
-            else
-                local parent_name = M.get_position_name(parent)
-
-                table.insert(parent_values, parent_name)
-            end
-        end
-
-        print("parent_values are... " .. vim.inspect(parent_values))
-
-        local value = table.concat(
-            vim.iter({
-                parent_values,
-            })
-                :flatten()
-                :totable(),
-            " "
-        )
-
-        -- FIXME: this is a poor name for this variable
-        local updated_value = value .. " " .. position_name
-
-        return updated_value
+        -- in the case that we're given a test, we'll be able to construct the fully-qualified path
+        -- by simply taking its nearest parent and appending the test name to it;
+        -- the nearest parent's ID (because it's a namespace/test suite) will have been recursively constructed already
+        return parents[#parents].id .. " " .. position_name
     else
-        -- FIXME: what do we want to do here?
-        -- basically, we have an unknown Node Type here
-        return ""
+        -- throw an error, we don't know how to handle this type
+        error("Unknown type: " .. type)
     end
 end
 
 function M.discover_positions(path)
-    local positions = lib.treesitter.parse_positions(path, query, {
+    return lib.treesitter.parse_positions(path, query, {
         nested_tests = true,
         require_namespaces = true,
         position_id = M.build_position_id,
     })
-
-    return positions
 end
 
 ---@param tree neotest.Tree

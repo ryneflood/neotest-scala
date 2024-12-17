@@ -1,5 +1,4 @@
 local lib = require("neotest.lib")
-local utils = require("neotest-scala.utils")
 
 local M = {}
 
@@ -11,15 +10,7 @@ local M = {}
 --     return escaped_test_name
 -- end
 
---- Strip quotes from the (captured) test position.
----@param position neotest.Position
----@return string
--- function M.get_position_name(position)
---     local without_quotes = string.gsub(position.name, [[^"(.+)"$]], "%1")
---
---     return without_quotes
--- end
-
+-- FIXME: I think this whole function is duplicated
 --- Strip quotes from the (captured) test position.
 ---@param position neotest.Position
 ---@return string
@@ -29,131 +20,6 @@ function M.get_position_name(position)
         return value
     end
     return position.name
-end
-
----@param position neotest.Position The position to return an ID for
----@param parents neotest.Position[] Parent positions for the position
----@return string
-function M.build_position_id(position, parents)
-    local parent_values = {}
-    -- alright, I see what's happening
-    -- we can call this recursively to build the fully-qualified id of each test suite
-    if position.type == "object" then
-        if #parents == 0 then
-            local package_name = M.get_package_name(position.path)
-            -- local object_name = M.get_object_name(position.path)
-
-            local position_name = utils.get_position_name(position)
-
-            local value = package_name .. "." .. position_name
-
-            return value
-        end
-
-        local parent = parents[#parents]
-
-        local position_name = utils.get_position_name(position)
-
-        return parent.id .. "." .. position_name
-    elseif position.type == "namespace" then
-        -- print("It's a namespace, does it have any parents?")
-        print("namespace name: ", position.name)
-        -- print("parents: ", vim.inspect(parents))
-        if #parents == 0 then
-            -- get the treesitter node
-            local range = position.range
-            print("range: ", vim.inspect(range))
-            local package_name = M.get_package_name(position.path)
-            local object_name = M.get_object_name(position.path)
-
-            local container_object = M.get_container_object(position.path, range)
-
-            print("container_object: ", vim.inspect(container_object))
-
-            local object_name = container_object.name
-
-            local position_name = utils.get_position_name(position)
-
-            local value = package_name .. "." .. object_name .. "." .. position_name
-
-            return value
-        end
-
-        local parent = parents[#parents]
-
-        local position_name = utils.get_position_name(position)
-
-        return parent.id .. "." .. position_name
-    else
-        for i, parent in ipairs(parents) do
-            if i == 1 then
-                table.insert(parent_values, parent.id)
-            else
-                local parent_name = utils.get_position_name(parent)
-
-                table.insert(parent_values, parent_name)
-            end
-        end
-
-        local value = table.concat(
-            vim.iter({
-                parent_values,
-            })
-                :flatten()
-                :totable(),
-            "."
-        )
-
-        local position_name = utils.get_position_name(position)
-
-        local updated_value = value .. "." .. position_name
-
-        return updated_value
-    end
-end
-
-function M.has_position(tree, pos_id)
-    for _, node in tree:iter_nodes() do
-        local data = node:data()
-
-        if data.id == pos_id then
-            return true
-        end
-    end
-    return false
-end
-
-function M.has_position_by_name(tree, position_name)
-    for _, node in tree:iter_nodes() do
-        local data = node:data()
-
-        if data.name == position_name then
-            return true
-        end
-    end
-    return false
-end
-
-function M.get_position_by_name(tree, position_name)
-    for _, node in tree:iter_nodes() do
-        local data = node:data()
-
-        if data.name == position_name then
-            return node
-        end
-    end
-    return nil
-end
-
-function M.find_position(tree, pos_id)
-    for _, node in tree:iter_nodes() do
-        local data = node:data()
-
-        if data.id == pos_id then
-            return node
-        end
-    end
-    return nil
 end
 
 ---@param path string
@@ -216,14 +82,11 @@ end
 ---@param child_range number[]|nil The range of the child node
 ---@return neotest.Position|nil
 function M.get_containing_object(path, child_range, query)
-    print("get_containing_object")
     local positions = lib.treesitter.parse_positions(path, query, {
         nested_tests = false,
         require_namespaces = false,
         build_position = M.build_position,
     })
-
-    print("number of positions: ", #positions)
 
     for _, position in positions:iter() do
         if child_range then

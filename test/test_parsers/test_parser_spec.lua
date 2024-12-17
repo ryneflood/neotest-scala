@@ -2,9 +2,41 @@ require("setup_test_environment")
 
 local files = require("neotest.lib").files
 local async = require("nio").tests
-local position = require("neotest-scala.position")
 local types = require("neotest-scala.types")
 local test_parser = require("neotest-scala.test_parsers")
+
+local function get_position_by_name(tree, position_name)
+    for _, node in tree:iter_nodes() do
+        local data = node:data()
+
+        if data.name == position_name then
+            return node
+        end
+    end
+    return nil
+end
+
+local function find_position(tree, pos_id)
+    for _, node in tree:iter_nodes() do
+        local data = node:data()
+
+        if data.id == pos_id then
+            return node
+        end
+    end
+    return nil
+end
+
+local function has_position(tree, pos_id)
+    for _, node in tree:iter_nodes() do
+        local data = node:data()
+
+        if data.id == pos_id then
+            return true
+        end
+    end
+    return false
+end
 
 local function print_position_ids(pos_id, position_ids)
     local message = {}
@@ -37,7 +69,7 @@ local function assert_has_position(tree, pos_id)
         table.insert(position_ids, data.id)
     end
 
-    assert(position.has_position(tree, pos_id), print_position_ids(pos_id, position_ids))
+    assert(has_position(tree, pos_id), print_position_ids(pos_id, position_ids))
 end
 
 local function assert_has_positions(spec, pos_ids)
@@ -63,11 +95,16 @@ local zio_test_spec = [[
             suite("Foo")(
                 test("Foo Bar") {
                     assertTrue(Hello.msg == "Hello World, from Bar")
-            },
-            test("Bar Foo") {
-                assertTrue(Hello.msg == "Hello World, from Bar")
-            }
-        )
+                },
+                test("Bar Foo") {
+                    assertTrue(Hello.msg == "Hello World, from Bar")
+                },
+                suite("Baz")(
+                  test("Oof") {
+                    assertTrue(Hello.msg == "Hello World, from Bar")
+                  }
+                )
+            )
 
     object BarSpec extends zio.test.ZIOSpecDefault:
         def spec =
@@ -150,6 +187,7 @@ describe("Test Parser", function()
                     "bar.FooSpec.Foo", -- this is the Suite
                     "bar.FooSpec.Foo Foo Bar", -- this is the Test
                     "bar.FooSpec.Foo Bar Foo", -- this is the Test
+                    "bar.FooSpec.Foo Baz Oof", -- this is the Test
                     "bar.BarSpec.Bar", -- this is the Suite
                     "bar.BarSpec.Bar Test But Not a Suite", -- this is the Test
                 }
@@ -205,7 +243,7 @@ describe("Test Parser", function()
                 files.write(fpath, scalatest_fun_suite)
 
                 local tree = test_parser.discover_positions(fpath)
-                local test_position = position.get_position_by_name(tree, "0.scala")
+                local test_position = get_position_by_name(tree, "0.scala")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -226,7 +264,7 @@ describe("Test Parser", function()
                 files.write(fpath, scalatest_fun_spec)
 
                 local tree = test_parser.discover_positions(fpath)
-                local test_position = position.get_position_by_name(tree, "0.scala")
+                local test_position = get_position_by_name(tree, "0.scala")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -247,7 +285,7 @@ describe("Test Parser", function()
                 files.write(fpath, scalatest_fun_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "foo.bar.FooSuite.Foo Suite Bar Suite")
+                local test_position = find_position(positions, "foo.bar.FooSuite.Foo Suite Bar Suite")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -274,7 +312,7 @@ describe("Test Parser", function()
                 files.write(fpath, scalatest_fun_suite)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "foo.bar.FooSuite")
+                local test_position = find_position(positions, "foo.bar.FooSuite")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -297,7 +335,7 @@ describe("Test Parser", function()
                 files.write(fpath, munit_spec)
 
                 local tree = test_parser.discover_positions(fpath)
-                local test_position = position.get_position_by_name(tree, "0.scala")
+                local test_position = get_position_by_name(tree, "0.scala")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -318,7 +356,7 @@ describe("Test Parser", function()
                 files.write(fpath, munit_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "foo.bar.FooSuite")
+                local test_position = find_position(positions, "foo.bar.FooSuite")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -339,7 +377,7 @@ describe("Test Parser", function()
                 files.write(fpath, munit_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "foo.bar.FooSuite Bar Foo")
+                local test_position = find_position(positions, "foo.bar.FooSuite Bar Foo")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -368,7 +406,7 @@ describe("Test Parser", function()
                 files.write(fpath, zio_test_spec)
 
                 local tree = test_parser.discover_positions(fpath)
-                local test_position = position.get_position_by_name(tree, "0.scala")
+                local test_position = get_position_by_name(tree, "0.scala")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -390,7 +428,7 @@ describe("Test Parser", function()
                 files.write(fpath, zio_test_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "bar.FooSpec.Foo")
+                local test_position = find_position(positions, "bar.FooSpec.Foo")
 
                 local result = test_parser.parse_tree(test_position)
 
@@ -417,7 +455,7 @@ describe("Test Parser", function()
                 files.write(fpath, zio_test_spec)
 
                 local positions = test_parser.discover_positions(fpath)
-                local test_position = position.find_position(positions, "bar.FooSpec.Foo Foo Bar")
+                local test_position = find_position(positions, "bar.FooSpec.Foo Foo Bar")
 
                 local result = test_parser.parse_tree(test_position)
 
