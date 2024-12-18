@@ -159,6 +159,13 @@ local scalatest_fun_spec = [[
             }
         }
     }
+
+    class BarSuite extends AnyFunSpec {
+      describe("Bar Suite") {
+        it("Bar") {
+            assert(true == true)
+        }
+    }
 ]]
 
 local scalatest_fun_suite = [[
@@ -252,7 +259,7 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    positions = {},
+                    positions = nil,
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
                 }
 
@@ -272,8 +279,9 @@ describe("Test Parser", function()
                     type = "file",
                     only = {
                         "foo.bar.FooSuite",
+                        "foo.bar.BarSuite",
                     },
-                    positions = {},
+                    position = nil,
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
                 }
 
@@ -294,12 +302,10 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    positions = {
-                        {
-                            id = "foo.bar.FooSuite.Foo Suite Bar Suite",
-                            name = "Bar Suite",
-                            path = { "Bar Suite", "Foo Suite" },
-                        },
+                    position = {
+                        id = "foo.bar.FooSuite.Foo Suite Bar Suite",
+                        name = "Bar Suite",
+                        path = { "Bar Suite", "Foo Suite" },
                     },
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
                 }
@@ -321,7 +327,7 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    positions = {},
+                    position = nil,
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
                 }
 
@@ -344,7 +350,7 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    positions = {},
+                    positions = nil,
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
                 }
 
@@ -365,7 +371,7 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    positions = {},
+                    position = nil,
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
                 }
 
@@ -386,12 +392,10 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    positions = {
-                        {
-                            id = "foo.bar.FooSuite Bar Foo",
-                            name = "Bar Foo",
-                            path = { "FooSuite" },
-                        },
+                    position = {
+                        id = "foo.bar.FooSuite Bar Foo",
+                        name = "Bar Foo",
+                        path = { "FooSuite" },
                     },
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
                 }
@@ -416,7 +420,7 @@ describe("Test Parser", function()
                         "bar.FooSpec",
                         "bar.BarSpec",
                     },
-                    positions = {},
+                    position = nil,
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
                 }
 
@@ -437,12 +441,10 @@ describe("Test Parser", function()
                     only = {
                         "bar.FooSpec",
                     },
-                    positions = {
-                        {
-                            id = "bar.FooSpec.Foo",
-                            name = "Foo",
-                            path = { "Foo" },
-                        },
+                    position = {
+                        id = "bar.FooSpec.Foo",
+                        name = "Foo",
+                        path = { "Foo" },
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
                 }
@@ -464,12 +466,10 @@ describe("Test Parser", function()
                     only = {
                         "bar.FooSpec",
                     },
-                    positions = {
-                        {
-                            id = "bar.FooSpec.Foo Foo Bar",
-                            name = "Foo Bar",
-                            path = { "Foo" },
-                        },
+                    position = {
+                        id = "bar.FooSpec.Foo Foo Bar",
+                        name = "Foo Bar",
+                        path = { "Foo" },
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
                 }

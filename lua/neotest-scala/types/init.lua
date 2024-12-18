@@ -8,7 +8,7 @@ local M = {}
 
 ---@class neotestscala.ParsedPosition
 ---@field type string
----@field positions neotestscala.ParsedTest[]
+---@field position neotestscala.ParsedTest
 ---@field only string[]
 
 ---@enum neotestscala.ProjectType

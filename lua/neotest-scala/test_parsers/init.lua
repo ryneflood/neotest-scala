@@ -5,6 +5,50 @@ local utils = require("neotest-scala.utils")
 
 local M = {}
 
+local function find_test_classes(path)
+    -- FIXME: we can be more specific with this query; we only want to match
+    -- object that extend ZIODefaultSpec, or whatever that's called
+    local query = [[
+        (object_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (type_identifier))) @object.definition
+            
+        (object_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (stable_type_identifier))) @object.definition
+            
+        (class_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (stable_type_identifier))) @object.definition
+            
+        (class_definition
+            name: (identifier) @object.name
+            extend: (extends_clause
+            type: (type_identifier))) @object.definition
+    ]]
+
+    local object_names = {}
+
+    local positions = lib.treesitter.parse_positions(path, query, {
+        nested_tests = false,
+        require_namespaces = false,
+        build_position = position.build_position,
+    })
+
+    for _, position in positions:iter() do
+        -- TODO: is this test necessary? We're already querying
+        -- for object definitions, so we should only get objects?
+        if position.type == "object" then
+            table.insert(object_names, position.name)
+        end
+    end
+
+    return object_names
+end
+
 local query = [[;;query
     ((class_definition
         name: (identifier) @namespace.name
@@ -198,15 +242,29 @@ function M.parse_tree(tree)
 
     if type == "file" then
         -- in this case we want to run all of the tests in the file
-        -- so, we'll want to provide the test runner with the name(s) of the main
-        -- object(s) in the file
+        -- so, we'll want to provide the test runner with the name(s) of the matching classes/objects
+        -- in the file
+        --
+        -- for example, in ZIO Test, a test suite is defined like this:
+        --
+        -- package bar
+        --
+        -- object FooSpec extends ZIOSpecDefault:
+        --   ...
+        --
+        -- object BarSpec extends ZIOSpecDefault:
+        --   ...
+        --
+        -- we'll want to return `<package-name>.<class-name>` for all matching objects
+        -- in this case we'll want to return [ "bar.FooSpec", "bar.BarSpec"]
+        --
         local package_name = position.get_package_name(tree:data().path)
-        local object_names = M.find_runnable_specs(tree:data().path)
+        local test_class_names = find_test_classes(tree:data().path)
 
-        local positions = {}
+        local test_classes = {}
 
-        for _, object_name in ipairs(object_names) do
-            table.insert(positions, package_name .. "." .. object_name)
+        for _, test_class_name in ipairs(test_class_names) do
+            table.insert(test_classes, package_name .. "." .. test_class_name)
         end
 
         local test_framework = M.get_test_framework_name(tree:data().path)
@@ -214,8 +272,8 @@ function M.parse_tree(tree)
         --@type neotestscala.ParsedPosition
         return {
             type = type,
-            positions = {},
-            only = positions,
+            position = nil,
+            only = test_classes,
             test_framework = test_framework,
         }
     end
@@ -258,14 +316,12 @@ function M.parse_tree(tree)
                 only = {
                     package_name .. "." .. containing_object.name,
                 },
-                positions = {
-                    position,
-                },
+                position = position,
                 test_framework = test_framework,
                 -- path = parent_names,
             }
         else
-            local test_suites = M.find_runnable_specs(tree:data().path)
+            local test_suites = find_test_classes(tree:data().path)
             local test_suite = test_suites[1]
 
             return {
@@ -273,12 +329,10 @@ function M.parse_tree(tree)
                 only = {
                     package_name .. "." .. test_suite,
                 },
-                positions = {
-                    {
-                        id = tree:data().id,
-                        name = M.get_position_name(tree:data()),
-                        path = parent_names,
-                    },
+                position = {
+                    id = tree:data().id,
+                    name = M.get_position_name(tree:data()),
+                    path = parent_names,
                 },
                 test_framework = test_framework,
             }
@@ -290,7 +344,6 @@ function M.parse_tree(tree)
         -- in ZIO Test a namespace is a Test Suite
         -- and we'll tell the Test Runner to run the entire suite
         -- so, we'll just want to return the ID of the Namespace itself
-        -- print("position is... " .. vim.inspect(tree:data()))
 
         local package_name = position.get_package_name(tree:data().path)
         -- we need to find the "containing" object of the test suite
@@ -299,10 +352,7 @@ function M.parse_tree(tree)
         -- TODO: we should probably check if the containing object is nil here
         local test_framework = M.get_test_framework_name(tree:data().path)
 
-        -- print("containing_object is... " .. vim.inspect(containing_object))
         local parent = tree:parent()
-
-        print("Hmmmm")
 
         local parent_names = {}
         table.insert(parent_names, M.get_position_name(tree:data()))
@@ -314,8 +364,6 @@ function M.parse_tree(tree)
             end
             parent = parent:parent()
         end
-
-        print("Parent names are... " .. vim.inspect(parent_names))
 
         if containing_object then
             local containing_object_name = containing_object.name
@@ -331,9 +379,7 @@ function M.parse_tree(tree)
                 only = {
                     package_name .. "." .. containing_object_name,
                 },
-                positions = {
-                    position,
-                },
+                position = position,
                 test_framework = test_framework,
             }
         else
@@ -343,7 +389,7 @@ function M.parse_tree(tree)
                 only = {
                     package_name .. "." .. M.get_position_name(tree:data()),
                 },
-                positions = {},
+                position = nil,
                 test_framework = test_framework,
                 -- path = parent_names,
             }
@@ -364,7 +410,7 @@ function M.parse_tree(tree)
                 -- so, we'll want to provide the test runner with the name(s) of the main
                 -- object(s) in the file
                 local package_name = position.get_package_name(child:data().path)
-                local object_names = M.find_runnable_specs(child:data().path)
+                local object_names = find_test_classes(child:data().path)
 
                 for _, object_name in ipairs(object_names) do
                     local fully_qualified_name = package_name .. "." .. object_name
@@ -379,57 +425,13 @@ function M.parse_tree(tree)
         --@type neotestscala.ParsedPosition
         return {
             type = type,
-            positions = {},
+            position = nil,
             only = without_duplicates,
             test_framework = test_framework,
         }
     end
 
     error("Unknown type: " .. type)
-end
-
-function M.find_runnable_specs(path)
-    -- FIXME: we can be more specific with this query; we only want to match
-    -- object that extend ZIODefaultSpec, or whatever that's called
-    local query = [[
-        (object_definition
-            name: (identifier) @object.name
-            extend: (extends_clause
-            type: (type_identifier))) @object.definition
-            
-        (object_definition
-            name: (identifier) @object.name
-            extend: (extends_clause
-            type: (stable_type_identifier))) @object.definition
-            
-        (class_definition
-            name: (identifier) @object.name
-            extend: (extends_clause
-            type: (stable_type_identifier))) @object.definition
-            
-        (class_definition
-            name: (identifier) @object.name
-            extend: (extends_clause
-            type: (type_identifier))) @object.definition
-    ]]
-
-    local object_names = {}
-
-    local positions = lib.treesitter.parse_positions(path, query, {
-        nested_tests = false,
-        require_namespaces = false,
-        build_position = position.build_position,
-    })
-
-    for _, position in positions:iter() do
-        -- TODO: is this test necessary? We're already querying
-        -- for object definitions, so we should only get objects?
-        if position.type == "object" then
-            table.insert(object_names, position.name)
-        end
-    end
-
-    return object_names
 end
 
 function M.get_test_framework_name(fpath)
