@@ -3,8 +3,9 @@ local utils = require("neotest-scala.utils")
 
 local M = {}
 
+---@param runner_path string
 ---@param project string
----@param test_framework string
+---@param build_tool string
 ---@param parsed_position neotestscala.ParsedPosition
 function M.build_command(runner_path, project, build_tool, parsed_position)
     local only = {}
@@ -18,33 +19,42 @@ function M.build_command(runner_path, project, build_tool, parsed_position)
     -- unfortunately, zio test doesn't support running a single test using
     -- its fully qualified name, so the best we can do is pass the test's name
     if parsed_position.test_framework == types.TEST_FRAMEWORKS.ZIO_TEST then
-        for _, position in ipairs(parsed_position.positions) do
+        if parsed_position.type == "test" then
             table.insert(tests, "--test")
-            -- surround the position in quotes
-            table.insert(tests, '"' .. position.name .. '"')
+            table.insert(tests, '"' .. parsed_position.position.name .. '"')
         end
     elseif parsed_position.test_framework == types.TEST_FRAMEWORKS.SCALATEST then
         -- bloop test baz.test -o foo.bar.FooSuite -- -z "Foo Suite Bar Suite"
         -- we want a test command like ^^
-        local position = parsed_position.positions[1]
-        local reversed = utils.reverseList(position.path)
+        local position = parsed_position.position
+
+        local p = position
+        local pp = {}
+
+        while p do
+            -- p = p.parent
+            table.insert(pp, p.name)
+
+            p = p.parent
+        end
+
+        local reversed = utils.reverseList(pp)
+        -- remove the last element, which is the test name
+        -- table.remove(reversed, 1)
         local c = table.concat(reversed, " ")
 
-        table.insert(tests, "--test")
-        -- surround the position in quotes
-        if parsed_position.type == "test" then
-            local chain = c .. " " .. position.name
-            table.insert(tests, '"' .. chain .. '"')
-        else
+        if parsed_position.type == "test" or parsed_position.type == "namespace" then
+            table.insert(tests, "--test")
             table.insert(tests, '"' .. c .. '"')
         end
 
         -- end
     else
-        for _, position in ipairs(parsed_position.positions) do
+        -- for _, position in ipairs(parsed_position.positions) do
+        if parsed_position.type == "test" then
             table.insert(tests, "--test")
             -- surround the position in quotes
-            table.insert(tests, '"' .. position.id .. '"')
+            table.insert(tests, '"' .. parsed_position.position.id .. '"')
         end
     end
 
@@ -52,7 +62,6 @@ function M.build_command(runner_path, project, build_tool, parsed_position)
         vim.iter({
             runner_path,
             "--runner",
-            -- "bloop",
             build_tool,
             "--project",
             project,

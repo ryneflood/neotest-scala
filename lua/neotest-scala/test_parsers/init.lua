@@ -87,6 +87,29 @@ local query = [[;;query
     )) @namespace.definition
 ]]
 
+---@param tree neotest.Tree
+local function make_position(tree)
+    if tree:parent() == nil then
+        return nil
+    end
+
+    if tree:data().type == "file" then
+        return nil
+    end
+
+    if tree:data().type == "dir" then
+        return nil
+    end
+
+    local position = {
+        name = M.get_position_name(tree:data()),
+        id = tree:data().id,
+        parent = make_position(tree:parent(), positions),
+    }
+
+    return position
+end
+
 function M.get_package_name(path)
     local file_content = lib.files.read(path)
     local ts = vim.treesitter
@@ -288,26 +311,7 @@ function M.parse_tree(tree)
         -- basically, the ZIODefaultSpec in which the Test Suite lives
         local containing_object = M.get_container_object(tree:data().path, tree:data().range)
         local test_framework = M.get_test_framework_name(tree:data().path)
-
-        local parent = tree:parent()
-
-        local parent_names = {}
-        -- recursively get the names of the parents
-        while parent do
-            if parent:data().type == "namespace" then
-                table.insert(parent_names, M.get_position_name(parent:data()))
-            end
-            parent = parent:parent()
-        end
-
-        print("Parent names are... " .. vim.inspect(parent_names))
-
-        --@type neotestscala.ParsedTest
-        local position = {
-            name = M.get_position_name(tree:data()),
-            id = tree:data().id,
-            path = parent_names,
-        }
+        local position = make_position(tree)
 
         if containing_object then
             --@type neotestscala.ParsedPosition
@@ -318,7 +322,6 @@ function M.parse_tree(tree)
                 },
                 position = position,
                 test_framework = test_framework,
-                -- path = parent_names,
             }
         else
             local test_suites = find_test_classes(tree:data().path)
@@ -329,11 +332,7 @@ function M.parse_tree(tree)
                 only = {
                     package_name .. "." .. test_suite,
                 },
-                position = {
-                    id = tree:data().id,
-                    name = M.get_position_name(tree:data()),
-                    path = parent_names,
-                },
+                position = position,
                 test_framework = test_framework,
             }
         end
@@ -352,27 +351,11 @@ function M.parse_tree(tree)
         -- TODO: we should probably check if the containing object is nil here
         local test_framework = M.get_test_framework_name(tree:data().path)
 
-        local parent = tree:parent()
-
-        local parent_names = {}
-        table.insert(parent_names, M.get_position_name(tree:data()))
-        -- recursively get the names of the parents
-        while parent do
-            print("Parent is... " .. vim.inspect(parent:data().type))
-            if parent:data().type == "namespace" then
-                table.insert(parent_names, M.get_position_name(parent:data()))
-            end
-            parent = parent:parent()
-        end
+        local position = make_position(tree)
 
         if containing_object then
             local containing_object_name = containing_object.name
 
-            local position = {
-                name = M.get_position_name(tree:data()),
-                path = parent_names,
-                id = tree:data().id,
-            }
             --@type neotestscala.ParsedPosition
             return {
                 type = type,
@@ -389,9 +372,8 @@ function M.parse_tree(tree)
                 only = {
                     package_name .. "." .. M.get_position_name(tree:data()),
                 },
-                position = nil,
+                position = position,
                 test_framework = test_framework,
-                -- path = parent_names,
             }
         end
     end

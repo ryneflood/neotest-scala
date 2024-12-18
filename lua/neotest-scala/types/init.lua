@@ -3,11 +3,11 @@ local M = {}
 ---@class neotestscala.ParsedTest
 ---@field id string
 ---@field name string
----@field path string[]
----@field test_framework neotestscala.TestFramework
+---@field parent neotestscala.ParsedTest | nil
 
 ---@class neotestscala.ParsedPosition
 ---@field type string
+---@field test_framework neotestscala.TestFramework
 ---@field position neotestscala.ParsedTest
 ---@field only string[]
 

@@ -305,7 +305,11 @@ describe("Test Parser", function()
                     position = {
                         id = "foo.bar.FooSuite.Foo Suite Bar Suite",
                         name = "Bar Suite",
-                        path = { "Bar Suite", "Foo Suite" },
+                        parent = {
+                            id = "foo.bar.FooSuite.Foo Suite",
+                            name = "Foo Suite",
+                            parent = nil,
+                        },
                     },
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
                 }
@@ -327,7 +331,11 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    position = nil,
+                    position = {
+                        id = "foo.bar.FooSuite",
+                        name = "FooSuite",
+                        parent = nil,
+                    },
                     test_framework = types.TEST_FRAMEWORKS.SCALATEST,
                 }
 
@@ -371,7 +379,11 @@ describe("Test Parser", function()
                     only = {
                         "foo.bar.FooSuite",
                     },
-                    position = nil,
+                    position = {
+                        id = "foo.bar.FooSuite",
+                        name = "FooSuite",
+                        parent = nil,
+                    },
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
                 }
 
@@ -395,7 +407,11 @@ describe("Test Parser", function()
                     position = {
                         id = "foo.bar.FooSuite Bar Foo",
                         name = "Bar Foo",
-                        path = { "FooSuite" },
+                        parent = {
+                            id = "foo.bar.FooSuite",
+                            name = "FooSuite",
+                            parent = nil,
+                        },
                     },
                     test_framework = types.TEST_FRAMEWORKS.MUNIT,
                 }
@@ -444,7 +460,7 @@ describe("Test Parser", function()
                     position = {
                         id = "bar.FooSpec.Foo",
                         name = "Foo",
-                        path = { "Foo" },
+                        parent = nil,
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
                 }
@@ -469,7 +485,11 @@ describe("Test Parser", function()
                     position = {
                         id = "bar.FooSpec.Foo Foo Bar",
                         name = "Foo Bar",
-                        path = { "Foo" },
+                        parent = {
+                            id = "bar.FooSpec.Foo",
+                            name = "Foo",
+                            parent = nil,
+                        },
                     },
                     test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
                 }

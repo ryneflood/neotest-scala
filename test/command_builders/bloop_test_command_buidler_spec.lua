@@ -18,70 +18,70 @@ describe("Bloop Test Command Builder", function()
     describe("build_command", function()
         async.it("should prepare a test runner command for a single Class", function()
             local expected =
-                "scala-runner --runner bloop --project foo.test --framework zio-test --only foo.bar.FooTests --to /tmp"
+                "scala-runner --runner bloop --project foo.test --framework zio-test --only foo.bar.FooTests --to /tmp --kind namespace"
 
             local parsed_position = {
                 type = "namespace",
                 only = { "foo.bar.FooTests" },
-                positions = {},
+                test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
+                position = nil,
             }
 
-            local result = command_builder.build_command("scala-runner", "foo.test", "zio-test", parsed_position)
+            local result = command_builder.build_command("scala-runner", "foo.test", "bloop", parsed_position)
 
             assert.is_same(expected, result)
         end)
 
         async.it("should prepare a test runner command for multiple Classes", function()
             local expected =
-                "scala-runner --runner bloop --project foo.test --framework zio-test --only foo.bar.FooTests --only foo.bar.BarTests --to /tmp"
+                "scala-runner --runner bloop --project foo.test --framework zio-test --only foo.bar.FooTests --only foo.bar.BarTests --to /tmp --kind namespace"
 
             local parsed_position = {
                 type = "namespace",
                 only = { "foo.bar.FooTests", "foo.bar.BarTests" },
-                positions = {},
+                test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
+                positions = nil,
             }
 
-            local result = command_builder.build_command("scala-runner", "foo.test", "zio-test", parsed_position)
+            local result = command_builder.build_command("scala-runner", "foo.test", "bloop", parsed_position)
 
             assert.is_same(expected, result)
         end)
 
         async.it("should prepare a test runner command for a single test", function()
             local expected =
-                'scala-runner --runner bloop --project foo.test --framework zio-test --only foo.bar.FooTests --test "Foo Bar Test" --to /tmp'
+                'scala-runner --runner bloop --project foo.test --framework zio-test --only foo.bar.FooTests --test "Foo Bar Test" --to /tmp --kind test'
 
             local parsed_position = {
                 type = "test",
                 only = { "foo.bar.FooTests" },
-                positions = {
-                    {
-                        id = "foo.bar.FooTests.Foo Bar Test",
-                        name = "Foo Bar Test",
-                    },
+                test_framework = types.TEST_FRAMEWORKS.ZIO_TEST,
+                position = {
+                    id = "foo.bar.FooTests.Foo Bar Test",
+                    name = "Foo Bar Test",
                 },
             }
 
-            local result = command_builder.build_command("scala-runner", "foo.test", "zio-test", parsed_position)
+            local result = command_builder.build_command("scala-runner", "foo.test", "bloop", parsed_position)
 
             assert.is_same(expected, result)
         end)
 
         async.it("should prepare a test runner command for a single test (Munit)", function()
             local expected =
-                'scala-runner --runner bloop --project foo.test --framework munit --only foo.bar.FooTests --test "foo.bar.FooTests.Foo Bar Test" --to /tmp'
+                'scala-runner --runner bloop --project foo.test --framework munit --only foo.bar.FooTests --test "foo.bar.FooTests.Foo Bar Test" --to /tmp --kind test'
 
             local parsed_position = {
                 type = "test",
                 only = { "foo.bar.FooTests" },
-                positions = {
-                    {
-                        id = "foo.bar.FooTests.Foo Bar Test",
-                        name = "Foo Bar Test",
-                    },
+                test_framework = types.TEST_FRAMEWORKS.MUNIT,
+                position = {
+                    id = "foo.bar.FooTests.Foo Bar Test",
+                    name = "Foo Bar Test",
                 },
             }
 
-            local result = command_builder.build_command("scala-runner", "foo.test", "munit", parsed_position)
+            local result = command_builder.build_command("scala-runner", "foo.test", "bloop", parsed_position)
 
             assert.is_same(expected, result)
         end)
@@ -91,18 +91,59 @@ describe("Bloop Test Command Builder", function()
             -- so, it should look something like:
             -- --only foo.bar.FooSuite --test "Foo Suite Bar Suite Baz"
             local expected =
-                'scala-runner --runner bloop --project foo.test --framework scalatest --only foo.bar.FooSuite --test "Foo Suite Bar Suite Baz" --to /tmp'
+                'scala-runner --runner bloop --project foo.test --framework scalatest --only foo.bar.FooSuite --test "Foo Suite Bar Suite Baz" --to /tmp --kind test'
 
             local parsed_position = {
                 type = "test",
                 only = { "foo.bar.FooSuite" },
-                positions = {
-                    {
-                        id = "foo.bar.FooSuite.Foo Suite.Bar Suite.Baz",
-                        name = "Baz",
+                position = {
+                    id = "foo.bar.FooSuite.Foo Suite.Bar Suite.Baz",
+                    name = "Baz",
+                    parent = {
+                        id = "foo.bar.FooSuite.Foo Suite.Bar Suite",
+                        name = "Bar Suite",
+                        parent = {
+                            id = "foo.bar.FooSuite.Foo Suite",
+                            name = "Foo Suite",
+                            parent = {
+                                id = "foo.bar.FooSuite",
+                                name = "FooSuite",
+                                parent = nil,
+                            },
+                        },
                     },
                 },
-                chain = { "Bar Suite", "Foo Suite" },
+                test_framework = types.TEST_FRAMEWORKS.SCALATEST,
+            }
+
+            local result = command_builder.build_command("scala-runner", "foo.test", "bloop", parsed_position)
+
+            assert.is_same(expected, result)
+        end)
+
+        async.it("should prepare a test runner command for a Test Suite (Scalatest)", function()
+            -- for scalatest, we need to pass the test name separated by spaces
+            -- so, it should look something like:
+            -- --only foo.bar.FooSuite --test "Foo Suite Bar Suite"
+            local expected =
+                'scala-runner --runner bloop --project foo.test --framework scalatest --only foo.bar.FooSuite --test "Foo Suite Bar Suite" --to /tmp --kind namespace'
+
+            local parsed_position = {
+                type = "namespace",
+                only = { "foo.bar.FooSuite" },
+                position = {
+                    id = "foo.bar.FooSuite.Foo Suite.Bar Suite",
+                    name = "Bar Suite",
+                    parent = {
+                        id = "foo.bar.FooSuite.Foo Suite",
+                        name = "Foo Suite",
+                        parent = {
+                            id = "foo.bar.FooSuite",
+                            name = "FooSuite",
+                            parent = nil,
+                        },
+                    },
+                },
                 test_framework = types.TEST_FRAMEWORKS.SCALATEST,
             }
 
