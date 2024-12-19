@@ -4,8 +4,6 @@ local project = require("neotest-scala.project")
 local test_command_builder = require("neotest-scala.test_command_builder")
 local test_parser = require("neotest-scala.test_parsers")
 
-local data = {}
-
 local get_scala_runner = function()
     local paths = vim.api.nvim_get_runtime_file("bin/scala-runner", true)
 
@@ -24,15 +22,6 @@ end
 ---@field get_args fun(runner: string, position: neotest.Position, strategy: string): string[]
 ---@field get_runner fun(python_command: string[]): string
 return function(config)
-    -- local function initialize()
-    --     data["persistent"] = "persistent_data"
-    --
-    --
-    --     -- data["project_type"] = project_type
-    --     -- data["build_tool"] = project.get_project_build_tool(cwd)
-    -- end
-
-    -- initialize()
     -- FIXME: move this somewhere more appropriate
     ---Builds strategy configuration for running tests.
     ---@param strategy string
