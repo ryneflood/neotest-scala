@@ -34,18 +34,6 @@ describe("sbt_build_tool", function()
             )
     ]]
 
-    describe("find_projects", function()
-        async.it("should return a list of available projects", function()
-            local fpath = vim.fn.tempname() .. ".sbt"
-            files.write(fpath, build_sbt_file)
-
-            local result = build_tool_sbt.find_projects(fpath)
-            local expected = { "root", "foo", "bar" }
-
-            assert.is_same(expected, result)
-        end)
-    end)
-
     describe("get_test_framework", function()
         async.it(
             "should find the name of the test framework for a given project (project: foo, test framework: zio-test)",

@@ -7,10 +7,6 @@ local M = {}
 
 M.type = types.PROJECT_TYPES.SCALA_CLI
 
-function M.find_projects(fpath)
-    return { "." }
-end
-
 function M.get_project_name(fpath)
     return "."
 end

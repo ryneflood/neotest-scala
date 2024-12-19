@@ -36,7 +36,7 @@ function M.get_project_name(file_path)
     -- we'll probably want to do this by finding the project's root and comparing the current path diff
     -- local path = Path:new(file_path):absolute()
     local pieces = vim.split(file_path, Path.path.sep)
-    local base_project_path = "([^/]+)"
+    -- local base_project_path = "([^/]+)"
     local test_path_regex = "([^/]+)/test"
     local regex = "([^/]+)/test/src"
     -- test the file_path string for a match

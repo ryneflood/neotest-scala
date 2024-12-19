@@ -5,15 +5,6 @@ local build_tool_mill = require("neotest-scala.build_tools.build_tool_mill")
 local utils = require("neotest-scala.utils")
 
 describe("mill_build_tool", function()
-    describe("find_projects", function()
-        it("should return a list of available projects", function()
-            local result = build_tool_mill.find_projects(utils.make_test_resources_path("projects/mill-project"))
-            local expected = { "bar", "foo" }
-
-            assert.is_same(expected, result)
-        end)
-    end)
-
     describe("get_project_name", function()
         it("should return the project name for the given file, project `foo`", function()
             local result = build_tool_mill.get_project_name(

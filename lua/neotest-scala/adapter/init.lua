@@ -24,19 +24,15 @@ end
 ---@field get_args fun(runner: string, position: neotest.Position, strategy: string): string[]
 ---@field get_runner fun(python_command: string[]): string
 return function(config)
-    local function initialize()
-        data["persistent"] = "persistent_data"
+    -- local function initialize()
+    --     data["persistent"] = "persistent_data"
+    --
+    --
+    --     -- data["project_type"] = project_type
+    --     -- data["build_tool"] = project.get_project_build_tool(cwd)
+    -- end
 
-        -- get the cwd
-        local cwd = vim.fn.getcwd()
-
-        local project_type = project.get_project_type(cwd)
-
-        data["project_type"] = project_type
-        data["build_tool"] = project.get_project_build_tool(cwd)
-    end
-
-    initialize()
+    -- initialize()
     -- FIXME: move this somewhere more appropriate
     ---Builds strategy configuration for running tests.
     ---@param strategy string
@@ -141,33 +137,15 @@ return function(config)
         ---@param args neotest.RunArgs
         ---@return neotest.RunSpec
         build_spec = function(args)
-            local build_tool = data["build_tool"]
+            local build_tool = project.get_project_build_tool(args.tree:data().path)
             local project_name = build_tool.get_project_name(args.tree:data().path)
-            -- local project_root = build_tool.get_project_root(args.tree:data().path)
-
-            -- FIXME: we should have something like a SpecBuilder which is responsible for this
-            -- so that we can test it in isolation
             local parsed_position = test_parser.parse_tree(args.tree)
-
-            -- local runner = utils.get_test_runner(args.tree:data().path)
-            -- assert(lib.func_util.index({ "bloop", "sbt", "scala-cli" }, runner), "unsupported runner: " .. runner)
             local project = assert(project_name, "scala project not found in the build file")
-
             local strategy = get_strategy_config(args.strategy, args.tree, project)
-
-            local scala_runner = nil
-
-            if config.get_scala_runner then
-                scala_runner = config.get_scala_runner()
-            else
-                scala_runner = get_scala_runner()
-            end
-
-            local test_runner = "bloop"
+            local scala_runner = get_scala_runner()
+            local test_runner = utils.get_test_runner(args.tree:data().path)
 
             local command = test_command_builder.build_command(scala_runner, project, test_runner, parsed_position)
-
-            print("COMMAND", command)
 
             return {
                 command = command,

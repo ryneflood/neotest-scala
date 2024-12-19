@@ -170,9 +170,6 @@ function M.get_project_name(file_path)
 
     local diff = file_path_split[number_of_elements + 1]
 
-    print("diff", diff)
-
-    ----
     local query = [[;;query
     ((val_definition
         pattern: (identifier) @id
@@ -217,9 +214,6 @@ function M.get_project_name(file_path)
         local pattern2 = [[project.in%(file%("(.+)"%)%).*]]
         local sanitized = string.gsub(no_line_breaks, [[%s%s+]], "")
         local project_in_match = string.match(sanitized, pattern) or string.match(sanitized, pattern2)
-        print("capture.value", sanitized)
-
-        print("project_in_match", project_in_match)
 
         if diff == "src" and project_in_match == "." then
             return capture.id

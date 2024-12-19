@@ -107,8 +107,6 @@ local function make_position(tree)
         parent = make_position(tree:parent(), positions),
     }
 
-    print("position: " .. vim.inspect(position))
-
     return position
 end
 
@@ -341,7 +339,6 @@ function M.parse_tree(tree)
     end
 
     if type == "namespace" then
-        print("it's a namespace")
         -- in ZIO Test a namespace is a Test Suite
         -- and we'll tell the Test Runner to run the entire suite
         -- so, we'll just want to return the ID of the Namespace itself
@@ -458,8 +455,6 @@ function M.get_test_framework_name(fpath)
             local name = query_obj.captures[id] -- capture name
             if name == "type.id" then
                 local object_name = vim.treesitter.get_node_text(node, file_content)
-
-                print("object_name: " .. object_name)
 
                 -- test if object_name contains the text "ZIODefaultSpec"
                 if string.find(object_name, "ZIOSpecDefault") then

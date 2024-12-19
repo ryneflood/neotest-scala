@@ -58,10 +58,10 @@ end
 
 function M.get_test_runner(path)
     if project.get_project_type(path) == types.PROJECT_TYPES.SCALA_CLI then
-        return types.PROJECT_TYPES.SCALA_CLI
+        return "scala-cli"
+    else
+        return "bloop"
     end
-
-    return "bloop"
 end
 
 function M.make_test_resources_path(file_path)
