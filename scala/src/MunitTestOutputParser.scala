@@ -63,6 +63,7 @@ private def isTestSuite(testSuiteNames: List[String], line: String): Boolean =
   )
 
 private def parseTestSuite(key: String, lines: List[String]): TestSuite =
+  // lines.foreach(println)
   // we want to look through the lines until we find a test name (the start of the output for a test)
   // and then take the lines until we find another test name (the end of the output for that test)
   val testLocations = lines.zipWithIndex.map { case (line, index) =>
@@ -88,9 +89,11 @@ private def parseTestSuite(key: String, lines: List[String]): TestSuite =
 
     testLocation._1 match
       case TestResult.Passed(name) =>
-        TestResultWithOutput.Passed(s"${key}.${name}", testOutput)
+        TestResultWithOutput.Passed(s"${key} ${name}", testOutput)
       case TestResult.Failed(name) =>
-        TestResultWithOutput.Failed(name, testOutput)
+        // remove $key from the test's name
+        val updatedName = name.drop(key.size + 1)
+        TestResultWithOutput.Failed(s"${key} ${updatedName}", testOutput)
   }
 
   TestSuite(key, hii)

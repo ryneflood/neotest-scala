@@ -1,7 +1,7 @@
 local lib = require("neotest.lib")
 local utils = require("neotest-scala.utils")
 local project = require("neotest-scala.project")
-local test_command_builder = require("neotest-scala.command_builders.bloop_test_command_builder")
+local test_command_builder = require("neotest-scala.test_command_builder")
 local test_parser = require("neotest-scala.test_parsers")
 
 local data = {}

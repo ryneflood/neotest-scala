@@ -107,6 +107,8 @@ local function make_position(tree)
         parent = make_position(tree:parent(), positions),
     }
 
+    print("position: " .. vim.inspect(position))
+
     return position
 end
 
