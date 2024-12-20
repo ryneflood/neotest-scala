@@ -215,7 +215,7 @@ function M.get_project_name(file_path)
         local sanitized = string.gsub(no_line_breaks, [[%s%s+]], "")
         local project_in_match = string.match(sanitized, pattern) or string.match(sanitized, pattern2)
 
-        if diff == "src" and project_in_match == "." then
+        if (diff == "src" or diff == "test") and project_in_match == "." then
             return capture.id
         end
 
