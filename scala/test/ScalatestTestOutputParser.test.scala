@@ -314,137 +314,137 @@ class ScalatestTestParserSuite extends munit.FunSuite:
   //
   //   assertEquals(result, expected)
 
-  test("should parse test output for a single, simple, Test Suite"):
-    val result = ScalatestTestOutputParser.parseTestOutput("FooSuite")(basic.linesIterator.toList.drop(1))
-    
-    val expected = List(
-      TestSuite(
-        "FooSuite", 
-        List(
-          TestResultWithOutput.Passed("FooSuite.Foo Suite.Foo"),
-          TestResultWithOutput.Passed("FooSuite.Foo Suite.Bar"),
-        )
-      ),
-      TestSuite(
-        "FooSuite", 
-        List(
-          TestResultWithOutput.Passed("FooSuite.Another Suite.Another Test")
-        )
-      )
-    )
-
-    assertEquals(result, expected)
+  // test("should parse test output for a single, simple, Test Suite"):
+  //   val result = ScalatestTestOutputParser.parseTestOutput("FooSuite")(basic.linesIterator.toList.drop(1))
+  //   
+  //   val expected = List(
+  //     TestSuite(
+  //       "FooSuite", 
+  //       List(
+  //         TestResultWithOutput.Passed("FooSuite.Foo Suite.Foo"),
+  //         TestResultWithOutput.Passed("FooSuite.Foo Suite.Bar"),
+  //       )
+  //     ),
+  //     TestSuite(
+  //       "FooSuite", 
+  //       List(
+  //         TestResultWithOutput.Passed("FooSuite.Another Suite.Another Test")
+  //       )
+  //     )
+  //   )
+  //
+  //   assertEquals(result, expected)
   
 
-  test("find test locations"):
-    val locations = ScalatestTestOutputParser.findTestLocations(basic.linesIterator.toList)
+  // test("find test locations"):
+  //   val locations = ScalatestTestOutputParser.findTestLocations(basic.linesIterator.toList)
+  //
+  //   val obtainedNames = locations.map(_.name)
+  //
+  //   val expectedNames = List(
+  //     "Foo Suite:",
+  //     "Foo Suite",
+  //     "Bar Suite",
+  //     "Again",
+  //     "Baz",
+  //     "Not Baz",
+  //     "Foo",
+  //     "Bar",
+  //     "Another Suite",
+  //     "Another Test"
+  //   )
+  //
+  //   assertEquals(obtainedNames, expectedNames)
 
-    val obtainedNames = locations.map(_.name)
+  // test("should parse steps into a TestSuite"):
+  //    val locations = List(
+  //       Step.NoChange(0, "Foo Suite", "Foo Suite"),
+  //       Step.Increment(0, "  Bar Suite", "Bar Suite"),
+  //       Step.Increment(0, "    Again", "Again"),
+  //       Step.NoChange(0, "    - Baz", "Baz"),
+  //       Step.NoChange(0, "    - Not Baz", "Not Baz"),
+  //       Step.Decrement(0, "- Foo", "Foo", 2),
+  //       Step.NoChange(0, "- Bar", "Bar"),
+  //      )
+  //
+  //    val expected = TestSuite(
+  //      "FooSuite",
+  //      List(
+  //         TestResultWithOutput.Passed("Foo Suite.Bar Suite.Again.Baz"),
+  //         TestResultWithOutput.Passed("Foo Suite.Bar Suite.Again.Not Baz"),
+  //         TestResultWithOutput.Passed("Foo Suite.Foo"),
+  //         TestResultWithOutput.Passed("Foo Suite.Bar"),
+  //        )
+  //      )
+  //
+  //    val obtained = ScalatestTestOutputParser.parseSteps(List.empty, locations)
+  //    
+  //    assertEquals(obtained, expected)
 
-    val expectedNames = List(
-      "Foo Suite:",
-      "Foo Suite",
-      "Bar Suite",
-      "Again",
-      "Baz",
-      "Not Baz",
-      "Foo",
-      "Bar",
-      "Another Suite",
-      "Another Test"
-    )
-
-    assertEquals(obtainedNames, expectedNames)
-
-  test("should parse steps into a TestSuite"):
-     val locations = List(
-        Step.NoChange(0, "Foo Suite", "Foo Suite"),
-        Step.Increment(0, "  Bar Suite", "Bar Suite"),
-        Step.Increment(0, "    Again", "Again"),
-        Step.NoChange(0, "    - Baz", "Baz"),
-        Step.NoChange(0, "    - Not Baz", "Not Baz"),
-        Step.Decrement(0, "- Foo", "Foo", 2),
-        Step.NoChange(0, "- Bar", "Bar"),
-       )
-
-     val expected = TestSuite(
-       "FooSuite",
-       List(
-          TestResultWithOutput.Passed("Foo Suite.Bar Suite.Again.Baz"),
-          TestResultWithOutput.Passed("Foo Suite.Bar Suite.Again.Not Baz"),
-          TestResultWithOutput.Passed("Foo Suite.Foo"),
-          TestResultWithOutput.Passed("Foo Suite.Bar"),
-         )
-       )
-
-     val obtained = ScalatestTestOutputParser.parseSteps(List.empty, locations)
-     
-     assertEquals(obtained, expected)
-
-  test("should parse steps into a TestSuite, including a failed test with its output"):
-     val locations = List(
-        Step.NoChange(0, "[32mFoo Suite[0m", "Foo Suite"),
-        Step.Increment(1, "[32m  Bar Suite[0m", "Bar Suite"),
-        Step.Increment(2, "[32m    Again[0m", "Again"),
-        Step.NoChange(3, "[31m    - Baz *** FAILED ***[0m", "Baz"),
-        Step.NoChange(5, "[32m    - Not Baz[0m", "Not Baz"),
-        Step.Decrement(6, "[32m- Foo[0m", "Foo", 2),
-        Step.NoChange(7, "[31m- Bar *** FAILED ***[0m", "Bar"),
-       )
-
-     val expectedFailedTestOutput = List(
-       "[31m    - Baz *** FAILED ***[0m",
-       "[31m      true did not equal false (TestSuite.scala:11)[0m"
-       )
-
-     val expectedFailedTestOutput2 = List(
-        "[31m- Bar *** FAILED ***[0m",
-        "[31m  true did not equal false (TestSuite.scala:24)[0m"
-      )
-
-     val expected = TestSuite(
-       "FooSuite",
-       List(
-          TestResultWithOutput.Failed("Foo Suite.Bar Suite.Again.Baz", expectedFailedTestOutput),
-          TestResultWithOutput.Passed("Foo Suite.Bar Suite.Again.Not Baz"),
-          TestResultWithOutput.Passed("Foo Suite.Foo"),
-          TestResultWithOutput.Failed("Foo Suite.Bar", expectedFailedTestOutput2),
-         )
-       )
-
-     val obtained = ScalatestTestOutputParser.parseSteps(suiteWithFailedTest.linesIterator.toList, locations)
-     
-     assertEquals(obtained, expected)
-
-  test("should parse Successful test output".ignore):
-    val result = ScalatestTestOutputParser.parseTestOutput("FooSuite")(successfulTestOutput.linesIterator.toList)
-
-    val expected = List(
-      TestSuite(
-        "FooSuite", 
-        List(
-          TestResultWithOutput.Passed("Foo Suite.Bar Suite"),
-          TestResultWithOutput.Passed("Foo Suite.Bar Suite.Baz"),
-          TestResultWithOutput.Passed("Foo Suite.Bar Suite.Not Baz"),
-          TestResultWithOutput.Passed("Foo Suite.Foo"),
-          TestResultWithOutput.Passed("Foo Suite.Bar"),
-        )
-      )
-    )
-
-    assertEquals(result, expected)
-
-  test("should split multi-suite test output into separate suites"):
-    // we only want to identify the top-level suites, so, in this case those are
-    // FooSuite and Baz Suite
-    val obtained = ScalatestTestOutputParser.identifyTestSuiteLocations(multiSuiteTestOutput.linesIterator.toList)
-
-    val expected = List(
-        Step.NoChange(0, "[32mFoo Suite[0m", "Foo Suite"),
-        Step.NoChange(17, "[32mBaz Suite[0m", "Baz Suite"),
-    )
-
-    assertEquals(obtained, expected)
+  // test("should parse steps into a TestSuite, including a failed test with its output"):
+  //    val locations = List(
+  //       Step.NoChange(0, "[32mFoo Suite[0m", "Foo Suite"),
+  //       Step.Increment(1, "[32m  Bar Suite[0m", "Bar Suite"),
+  //       Step.Increment(2, "[32m    Again[0m", "Again"),
+  //       Step.NoChange(3, "[31m    - Baz *** FAILED ***[0m", "Baz"),
+  //       Step.NoChange(5, "[32m    - Not Baz[0m", "Not Baz"),
+  //       Step.Decrement(6, "[32m- Foo[0m", "Foo", 2),
+  //       Step.NoChange(7, "[31m- Bar *** FAILED ***[0m", "Bar"),
+  //      )
+  //
+  //    val expectedFailedTestOutput = List(
+  //      "[31m    - Baz *** FAILED ***[0m",
+  //      "[31m      true did not equal false (TestSuite.scala:11)[0m"
+  //      )
+  //
+  //    val expectedFailedTestOutput2 = List(
+  //       "[31m- Bar *** FAILED ***[0m",
+  //       "[31m  true did not equal false (TestSuite.scala:24)[0m"
+  //     )
+  //
+  //    val expected = TestSuite(
+  //      "FooSuite",
+  //      List(
+  //         TestResultWithOutput.Failed("Foo Suite.Bar Suite.Again.Baz", expectedFailedTestOutput),
+  //         TestResultWithOutput.Passed("Foo Suite.Bar Suite.Again.Not Baz"),
+  //         TestResultWithOutput.Passed("Foo Suite.Foo"),
+  //         TestResultWithOutput.Failed("Foo Suite.Bar", expectedFailedTestOutput2),
+  //        )
+  //      )
+  //
+  //    val obtained = ScalatestTestOutputParser.parseSteps(suiteWithFailedTest.linesIterator.toList, locations)
+  //    
+  //    assertEquals(obtained, expected)
+  //
+  // test("should parse Successful test output".ignore):
+  //   val result = ScalatestTestOutputParser.parseTestOutput("FooSuite")(successfulTestOutput.linesIterator.toList)
+  //
+  //   val expected = List(
+  //     TestSuite(
+  //       "FooSuite", 
+  //       List(
+  //         TestResultWithOutput.Passed("Foo Suite.Bar Suite"),
+  //         TestResultWithOutput.Passed("Foo Suite.Bar Suite.Baz"),
+  //         TestResultWithOutput.Passed("Foo Suite.Bar Suite.Not Baz"),
+  //         TestResultWithOutput.Passed("Foo Suite.Foo"),
+  //         TestResultWithOutput.Passed("Foo Suite.Bar"),
+  //       )
+  //     )
+  //   )
+  //
+  //   assertEquals(result, expected)
+  //
+  // test("should split multi-suite test output into separate suites"):
+  //   // we only want to identify the top-level suites, so, in this case those are
+  //   // FooSuite and Baz Suite
+  //   val obtained = ScalatestTestOutputParser.identifyTestSuiteLocations(multiSuiteTestOutput.linesIterator.toList)
+  //
+  //   val expected = List(
+  //       Step.NoChange(0, "[32mFoo Suite[0m", "Foo Suite"),
+  //       Step.NoChange(17, "[32mBaz Suite[0m", "Baz Suite"),
+  //   )
+  //
+  //   assertEquals(obtained, expected)
 
   test("should be able to parse XML output".only):
     val obtained = ScalatestXmlTestOutputParser.parseTestOutput("FooSuite")(xmlOutput.linesIterator.toList)

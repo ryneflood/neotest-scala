@@ -26,7 +26,8 @@ class ParseCommandLineOptionsSuite extends munit.FunSuite {
       outputDirectory = os.Path("/tmp"),
       project = "foo.test",
       testSuites = List("foo.bar.TestSuite"),
-      test = None
+      test = None,
+      kind = "test"
     )
 
     val options = CommandlineArgumentsParser.parseArgs(commandLineArguments)
@@ -56,7 +57,8 @@ class ParseCommandLineOptionsSuite extends munit.FunSuite {
       outputDirectory = os.Path("/tmp"),
       project = "foo.test",
       testSuites = List("foo.bar.TestSuite", "foo.bar.TestSuite2"),
-      test = None
+      test = None,
+      kind = "test"
     )
 
     val options = CommandlineArgumentsParser.parseArgs(commandLineArguments)
@@ -86,7 +88,8 @@ class ParseCommandLineOptionsSuite extends munit.FunSuite {
       outputDirectory = os.Path("/tmp"),
       project = "foo.test",
       testSuites = List("foo.bar.TestSuite2"),
-      test = Some("foo.bar.TestSuite2.test")
+      test = Some("foo.bar.TestSuite2.test"),
+      kind = "test"
     )
 
     val options = CommandlineArgumentsParser.parseArgs(commandLineArguments)
