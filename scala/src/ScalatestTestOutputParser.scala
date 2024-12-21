@@ -47,8 +47,18 @@ object ScalatestXmlTestOutputParser extends TestOutputParser:
         TestResultWithOutput.Passed(s"${suiteName}.${name}")
       else
         val message = failure.get.attribute("message").get.text
+        // get the body of the failure message
+        val body = failure.get.text
 
-        TestResultWithOutput.Failed(s"${suiteName}.${name}", List(message))
+        // colorize the message red
+        val messageWithColor = s"\u001b[31m${message}\u001b[0m"
+
+        val messageWithAnalysis = s"${messageWithColor}\n\n${body}"
+
+        TestResultWithOutput.Failed(
+          s"${suiteName}.${name}",
+          List(messageWithAnalysis)
+        )
     }.toList
 
     List(TestSuite(suiteName, tests))
